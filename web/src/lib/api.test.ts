@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, formatBytes, formatDuration, getJson, titleFromFilename, uploadLecture, type Project } from "./api";
+import { ApiError, formatBytes, formatDuration, formatDurationLimit, getJson, titleFromFilename, uploadLecture, type Project } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,6 +23,16 @@ describe("formatDuration", () => {
     [3600, "1:00:00"],
     [3725, "1:02:05"],
   ])("%d s → %s", (s, text) => expect(formatDuration(s)).toBe(text));
+});
+
+describe("formatDurationLimit", () => {
+  it.each([
+    [600, "10 minutes"],
+    [60, "1 minute"],
+    [3600, "1 hour"],
+    [10800, "3 hours"],
+    [90, "90 seconds"],
+  ])("%d s → %s", (s, text) => expect(formatDurationLimit(s)).toBe(text));
 });
 
 describe("titleFromFilename", () => {

@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   ApiError,
   formatBytes,
-  formatDuration,
+  formatDurationLimit,
   getJson,
   titleFromFilename,
   uploadLecture,
@@ -73,15 +73,19 @@ export function UploadForm() {
   function onFileChange(next: File | null) {
     setFile(next);
     setErrors((e) => ({ ...e, file: undefined }));
-    if (next && !title.trim()) setTitle(titleFromFilename(next.name));
+    if (next && !title.trim()) {
+      setTitle(titleFromFilename(next.name));
+      setErrors((e) => ({ ...e, title: undefined }));
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const found = validateUpload({ title, file, rights }, config);
     setErrors(found);
-    if (found.title) return titleRef.current?.focus();
+    // Focus the first invalid field in page order.
     if (found.file) return fileRef.current?.focus();
+    if (found.title) return titleRef.current?.focus();
     if (found.rights) return rightsRef.current?.focus();
     if (!file) return;
 
@@ -97,7 +101,7 @@ export function UploadForm() {
           onPhase: (phase) => phase === "checking" && setState({ kind: "checking" }),
         },
       );
-      toast({ title: "Upload complete", description: `“${project.title}” is ready for processing.`, tone: "success" });
+      toast({ title: "Upload complete", description: `“${project.title}” was uploaded and checked.`, tone: "success" });
       router.push(`/projects/${project.id}/processing`);
     } catch (err) {
       if (err instanceof ApiError && err.code === "aborted") {
@@ -121,7 +125,7 @@ export function UploadForm() {
         aria-busy={busy}
         className="grid gap-5 rounded-lg border border-border bg-surface p-5 shadow-card sm:p-6"
       >
-        <Field label="Video file" required error={errors.file} hint={config ? `${config.formats.join(", ")} · up to ${formatBytes(config.max_upload_bytes)} and ${formatDuration(config.max_video_duration_s)} long` : "MP4, MOV, WebM or MKV"}>
+        <Field label="Video file" required error={errors.file} hint={config ? `${config.formats.join(", ")} · up to ${formatBytes(config.max_upload_bytes)} and ${formatDurationLimit(config.max_video_duration_s)} long` : "MP4, MOV, WebM or MKV"}>
           <Input
             ref={fileRef}
             type="file"

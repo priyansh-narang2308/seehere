@@ -69,7 +69,7 @@ describe("UploadForm", () => {
 
   it("shows the server's limits and retention once loaded", async () => {
     renderForm();
-    expect(await screen.findByText(/up to 1\.0 MB and 3:00:00 long/)).toBeInTheDocument();
+    expect(await screen.findByText(/up to 1\.0 MB and 3 hours long/)).toBeInTheDocument();
     expect(screen.getByText(/expire after 24 hours\. Automatic deletion is not built yet/)).toBeInTheDocument();
     expect(screen.getByLabelText(/video file/i)).toHaveAttribute("accept", config.accept);
   });
@@ -83,9 +83,14 @@ describe("UploadForm", () => {
     expect(screen.getByText("Enter a title for this lecture.")).toBeInTheDocument();
     expect(screen.getByText("Choose a video file.")).toBeInTheDocument();
     expect(screen.getByText("Confirm that you may process this video.")).toBeInTheDocument();
-    expect(screen.getByLabelText(/lecture title/i)).toHaveFocus();
+    expect(screen.getByLabelText(/video file/i)).toHaveFocus();
     expect(screen.getByRole("checkbox")).toHaveAccessibleDescription("Confirm that you may process this video.");
     expect(uploadLecture).not.toHaveBeenCalled();
+
+    // Choosing a file fills the empty title, so its error clears too.
+    await user.upload(screen.getByLabelText(/video file/i), video());
+    expect(screen.queryByText("Enter a title for this lecture.")).toBeNull();
+    expect(screen.queryByText("Choose a video file.")).toBeNull();
   });
 
   it("uploads, shows progress, then goes to the project's processing page", async () => {

@@ -140,6 +140,14 @@ export function formatDuration(seconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 
+/** A limit in words: 600 → "10 minutes"; 10800 → "3 hours"; 90 → "90 seconds". */
+export function formatDurationLimit(seconds: number): string {
+  const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+  if (seconds % 3600 === 0) return plural(seconds / 3600, "hour");
+  if (seconds % 60 === 0) return plural(seconds / 60, "minute");
+  return plural(seconds, "second");
+}
+
 /** Title suggestion from a filename: "lecture_07-graphs.mp4" → "lecture 07 graphs". */
 export function titleFromFilename(name: string): string {
   return name
