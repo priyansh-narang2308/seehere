@@ -1,9 +1,9 @@
-import { FolderOpen, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, PageHeader } from "@/components/layout/page";
+import { ProjectList } from "@/components/project/project-list";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -24,12 +24,7 @@ export default function ProjectsPage() {
           </Button>
         }
       />
-      <EmptyState
-        className="mt-8"
-        icon={FolderOpen}
-        title="No projects yet"
-        description="Projects appear here after you upload a lecture. Project storage and uploads are not built yet, so this list is empty."
-      />
+      <ProjectList />
     </Container>
   );
 }
