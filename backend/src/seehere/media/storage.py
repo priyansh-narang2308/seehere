@@ -7,6 +7,7 @@ sanitized for display only and never used to build a path. Every read or write g
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import unicodedata
@@ -70,7 +71,5 @@ class MediaStore:
     def remove(self, relative: str) -> None:
         path = self.resolve(relative)
         path.unlink(missing_ok=True)
-        try:
+        with contextlib.suppress(OSError):
             path.parent.rmdir()  # only succeeds if now empty
-        except OSError:
-            pass

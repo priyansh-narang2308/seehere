@@ -103,8 +103,7 @@ def inspect_lecture_video(path: Path, settings: Settings) -> VideoProbe:
         (
             s
             for s in streams
-            if s.get("codec_type") == "video"
-            and not s.get("disposition", {}).get("attached_pic")
+            if s.get("codec_type") == "video" and not s.get("disposition", {}).get("attached_pic")
         ),
         None,
     )
