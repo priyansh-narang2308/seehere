@@ -284,3 +284,4 @@ def test_upload_config_reports_real_limits(client: TestClient) -> None:
     assert body["max_upload_bytes"] == MAX_MB * 1024 * 1024
     assert body["max_video_duration_s"] == MAX_SECONDS
     assert ".mp4" in body["accept"]
+    assert body["retention_hours"] == 24

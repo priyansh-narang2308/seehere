@@ -48,6 +48,7 @@ class UploadConfig(BaseModel):
     max_video_duration_s: int
     accept: str
     formats: list[str]
+    retention_hours: int
 
 
 class MediaOut(BaseModel):
@@ -94,6 +95,7 @@ def upload_config(settings: SettingsDep) -> UploadConfig:
         max_video_duration_s=settings.max_video_duration_s,
         accept=ACCEPT,
         formats=["MP4", "MOV", "WebM", "MKV"],
+        retention_hours=settings.media_retention_hours,
     )
 
 
