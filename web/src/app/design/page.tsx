@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Logo, LogoMark } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo";
 import { Eyebrow } from "@/components/ui/card";
 import { color, contrastRatio } from "@/lib/tokens";
 import { InteractiveShowcase } from "./showcase";
@@ -76,11 +75,10 @@ const typeScale = [
 
 export default function DesignSystemPage() {
   return (
-    <main id="main" className="mx-auto w-full max-w-5xl px-6 py-14">
+    <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
       <header className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-8">
         <div>
-          <Logo />
-          <h1 className="mt-6 text-3xl font-bold tracking-tight text-ink">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Design system
           </h1>
           <p className="mt-2 max-w-xl text-ink-2">
@@ -89,12 +87,6 @@ export default function DesignSystemPage() {
             component works by keyboard.
           </p>
         </div>
-        <Link
-          href="/"
-          className="text-sm font-medium text-accent-strong underline-offset-4 hover:underline"
-        >
-          Back to status
-        </Link>
       </header>
 
       <section aria-labelledby="brand" className="mt-12">
@@ -176,6 +168,6 @@ export default function DesignSystemPage() {
       </section>
 
       <InteractiveShowcase />
-    </main>
+    </div>
   );
 }

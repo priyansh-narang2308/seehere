@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/ui/misc";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
@@ -32,7 +34,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <SkipLink />
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <SiteHeader />
+          {/* tabIndex lets the skip link move focus here. */}
+          <main id="main" tabIndex={-1} className="flex flex-1 flex-col focus:outline-none">
+            {children}
+          </main>
+          <SiteFooter />
+        </ToastProvider>
       </body>
     </html>
   );
