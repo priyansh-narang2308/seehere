@@ -7,7 +7,9 @@ from importlib.metadata import version as pkg_version
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from seehere.api.errors import install_error_handlers
 from seehere.api.health import HealthReport, build_report
+from seehere.api.projects import router as projects_router
 from seehere.core.config import get_settings
 
 VERSION = pkg_version("seehere")
@@ -28,6 +30,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["*"],
     )
+    install_error_handlers(app)
+    app.include_router(projects_router)
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict[str, str]:
