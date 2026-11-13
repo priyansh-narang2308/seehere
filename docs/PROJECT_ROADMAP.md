@@ -25,8 +25,8 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 03 | Application shell and navigation | P1 | ✅ | Home, Upload, Projects, Processing, Results, Methodology routes; skip link; responsive at 375/768/1280; keyboard-only navigation works |
 | 04 | Database schema and migrations | P0 | ✅ | Alembic migration creates project, media_asset, job, transcript_word/segment, frame, slide, ocr_region, visual_unit, reference_link, evidence, description_cue, verification_event, schedule_run, audio_clip, review_decision, export_artifact with FKs and indexes; up/down tested |
 | 05 | Secure upload system | P0 | ✅ | Streaming upload with size cap, ffprobe-based type check, rights confirmation required, safe filenames, path-traversal tests, progress UI |
-| 06 | Background jobs and orchestration | P0 | ⏳ | Postgres SKIP LOCKED worker; states, progress, retries with backoff, cancellation, idempotency; tests for double-claim and crash recovery |
-| 07 | Media inspection and normalization | P0 | ⏳ | ffprobe metadata stored; malformed input rejected; 16 kHz WAV + frame sampling produced; subprocess argv-only with timeouts |
+| 06 | Background jobs and orchestration | P0 | ✅ | Postgres SKIP LOCKED worker; states, progress, retries with backoff, cancellation, idempotency; tests for double-claim and crash recovery |
+| 07 | Media inspection and normalization | P0 | ✅ | ffprobe metadata stored; malformed input rejected; 16 kHz WAV + frame sampling produced; subprocess argv-only with timeouts |
 | 08 | Speech-to-text | P0 | ⏳ | faster-whisper adapter returns words with timings on a real clip; capability marked TESTED; Vultr Whisper adapter tested for text only (if key provided) |
 | 09 | Scene and slide change detection | P0 | ⏳ | Keyframes with timestamps; dedupe; precision checked on the demo clip |
 | 10 | OCR and text evidence | P0 | ⏳ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |

@@ -232,3 +232,102 @@
 - No upload resume. A dropped connection means starting again. Uploads go straight to the API, not to object storage.
 - ffprobe identifies the container and streams; it does not prove the video plays end to end. Full decode and normalization come in Task 07.
 - The `starlette.testclient` deprecation warning remains (cosmetic).
+
+## TASK 06: Background jobs and orchestration
+- **Status:** COMPLETE (local). No cloud resources created. Tasks 06 and 07 were committed together in 10 code commits plus 1 docs commit (not pushed).
+- **Date:** 14 Nov 2026, 00:36–00:56 IST.
+
+### Implemented
+- **Queue (`seehere/jobs/queue.py`, ADR-005).** Built on the existing `job` table.
+  - `enqueue` is idempotent (`ON CONFLICT (idempotency_key) DO NOTHING`) and doesn't commit, so a job is committed together with the data it refers to.
+  - `claim` does `UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED LIMIT 1)`, so two workers never get the same job. It only takes jobs whose `run_after` has passed and whose kind the worker can handle.
+  - **Leases:** every update after a claim is guarded by `locked_by = <worker>`. A worker that lost its job can never overwrite newer state. All times come from the database clock.
+  - **Retries:** unexpected errors are retried with exponential backoff (10 s, 20 s, 40 s… capped at 300 s) until `max_attempts` (default 3). `PermanentJobError` fails at once.
+  - **Cancellation:** a queued job is cancelled at once. A running job gets `cancel_requested`; the worker sees it on its next heartbeat or progress report and stops, killing ffmpeg if it's running.
+  - **Retry after failure or cancel:** resets attempts and starts a fresh run.
+  - **Crash recovery:** `recover_stale` re-queues running jobs whose heartbeat is older than `job_stale_after_s` (60 s). A job out of attempts fails instead, and a job with a pending cancel is cancelled.
+  - **Project status is derived from its jobs:** processing while any job is active, failed if one failed, otherwise uploaded. "Ready" stays unreachable until the full pipeline exists.
+- **Worker (`seehere/jobs/worker.py`, `make worker`).**
+  - Claims and runs jobs. A heartbeat thread refreshes the lease every 5 s and watches for cancel requests.
+  - `JobContext.progress(stage, fraction)` stores throttled progress.
+  - Errors are recorded with a **user-safe message**. Unexpected errors show only "An unexpected error stopped this step."; the full traceback goes to the worker log only.
+  - Maintenance (stale recovery and retention) runs every 60 s on every worker.
+  - SIGINT/SIGTERM stop the worker after the current job. A hard kill is recovered through the lease.
+- **Retention (`seehere/jobs/retention.py`).** Delivers the 24 h deletion that Task 05 openly said was missing.
+  - Expired projects are locked with SKIP LOCKED; their media directory is removed and their rows deleted (cascading to every derived row).
+  - Projects with a running job wait until it ends.
+  - Abandoned partial uploads and work directories in `media/tmp` older than 6 h are removed too.
+  - `remove_tree` refuses symlinks and paths outside the media root.
+- **Upload integration.** Each upload now enqueues `media.prepare` **in the same transaction** as the project and media rows, so a project can't exist without its first job.
+- **API (`seehere/api/jobs.py`).**
+  - `GET /api/projects/{id}/jobs` returns the jobs plus the server's clock.
+  - `POST /api/jobs/{id}/cancel` and `POST /api/jobs/{id}/retry`:
+    - Both return 409 when the job is in the wrong state.
+    - Both **require the `X-SeeHere-Request: 1` header**, so another site can't trigger them: the custom header forces a CORS preflight that only the app's origin passes.
+
+### Tests executed and results
+| Check | Result |
+|---|---|
+| `test_jobs.py` (23) | Idempotent enqueue. Claim filters (kind, `run_after`). **SKIP LOCKED skips a row another transaction holds** (deterministic). **8 threads racing for 40 jobs: every job claimed exactly once.** Only the lease holder can heartbeat, report progress, complete or cancel. Backoff values and cap. Retryable vs permanent failures. Queued vs running cancel. Retry rules. Stale recovery (re-queue, fail when out of attempts, cancel). Project status derivation. Worker: progress, retry with a safe message (a fake secret path never reaches the job row), permanent failure, live cancel of a running job, lost lease never overwrites, clean loop stop. **A real worker process is SIGKILLed mid-job: the job stays running until the heartbeat goes stale, is re-queued, and a new worker finishes it (attempt 2)** |
+| `test_retention.py` (5) | Only expired projects are deleted (files, rows and cascaded jobs); a running job defers deletion; idempotent when files are already gone; only old temp entries are removed; symlink and `..` escapes are refused, and files outside the media root are kept |
+| `test_jobs_api.py` (7) | Upload queues the job; worker outputs served; empty outputs before preparation; cancel/retry need the header (403) and the right state (409); unknown IDs give 404; a frame row pointing outside media gives 404, never the file; a cross-site preflight from another origin gets no CORS approval |
+| Live (dev stack, `make worker`) | Upload → Waiting → Running → Done on the Processing page. **Cancel in the UI:** Running → Stopping… → Cancelled, with only `source.mp4` left on disk and `tmp/` empty. **Run again:** Waiting → Running → Done. **Retention:** an expired project was deleted by the worker's sweep within 30 s (files gone, API 404, web 404) |
+
+### Known limitations
+- Delivery is at-least-once. Handlers must be idempotent; the one handler so far is, and that is tested.
+- No jitter in the backoff. With single-digit workers this is fine.
+- No worker registry. The UI infers "the worker may not be running" from a job waiting more than 15 s.
+- SIGTERM waits for the current job. If a container stop kills the worker before that, the job is recovered after 60 s.
+- Projects uploaded before this task have no job. Their Processing page says no analysis was queued.
+
+## TASK 07: Media inspection and normalization
+- **Status:** COMPLETE (local). No cloud resources created.
+- **Date:** 14 Nov 2026, 00:44–00:56 IST.
+
+### Implemented
+- **Safe ffmpeg runner (`seehere/media/ffmpeg.py`).**
+  - A fixed argv list, never a shell. `-nostdin`.
+  - Inputs are opened with `-protocol_whitelist file`, the `mov,matroska` demuxers only, and a `file:` path prefix, so a file can't make ffmpeg open a URL, a playlist or another file.
+  - Live progress comes from `-progress pipe:1`.
+  - There is a timeout (900 s), and the process is **killed on cancel or timeout**.
+  - stderr goes to a temp file, so it can't block. Its tail is logged, never shown to users.
+- **`media.prepare` handler (`seehere/media/normalize.py`).**
+  1. Re-inspects the stored file with the upload's content rules; corrupt input fails permanently with a user-safe message.
+  2. Extracts the first audio track as **16 kHz mono 16-bit PCM WAV** and verifies the result with ffprobe (wav demuxer only): codec, rate, channels and duration.
+  3. Samples **1 frame per second** (configurable), scaled to at most 1280 px wide, as JPEGs.
+     - Frame *n* is **the picture on screen at *n*/fps**: ffmpeg's `fps=…:round=up` takes the last frame at or before that time, and the file is named by *n* (`-frame_pts`).
+  4. All work happens in a private temp directory. Outputs are moved into place, and the old outputs are replaced, in one transaction. Re-running leaves exactly one set.
+  - Progress stages are inspect → audio → frames → save.
+- **Outputs API.**
+  - `GET /api/projects/{id}/media`: audio facts, frame count, rate and range, and up to 48 evenly spaced preview frames.
+  - `GET /api/frames/{id}/image`: the JPEG, resolved through `MediaStore`, with `nosniff`, a private cache and `inline`.
+- **Web: Processing page.** A live **Analysis** panel.
+  - It polls once a second while work is active and stops when idle.
+  - It shows the stage with a progress bar, the attempt count, retry timing, failure reasons, and Cancel / Try again / Run again buttons.
+  - It hints when no worker seems to be running.
+  - When finished it shows the audio and frame summary and a frame preview grid with alt text ("Video frame at 0:16").
+  - A screen-reader live region announces status changes only, not every progress tick.
+  - When work finishes, the server-rendered status badge is refreshed.
+- `pipeline.ts`: the "Media inspection" stage is now **built** (2 of 15).
+- **Copy changes:**
+  - Upload page: "The video and everything made from it are deleted 24 hours after upload."
+  - Source facts: "Scheduled for deletion on …".
+
+### Tests executed and results
+| Check | Result |
+|---|---|
+| `test_media_prepare.py` (15) | **Frame timing proven by content:** an 8 s video whose brightness rises with time; each sampled frame is compared with a reference frame decoded independently at the stored time (±6 of 255). WAV is pcm_s16le, 16 kHz, mono, 8.0 s, about 32,000 bytes per second, mode 0600. fps=2 and max-width limits applied (16 frames at 0.5 s steps, 320×180). Re-run replaces outputs (1 audio, 8 frames, 10 files). HLS playlist, header-only MP4 and truncated MP4 fail permanently with no outputs and a clean temp dir. Missing source file fails. Cancel mid-frames leaves no outputs. Runner: progress reaches 1.0 in order; cancel kills ffmpeg in under 5 s; timeout; failure detail kept for logs; an HLS playlist input can't reach the network |
+| Backend total | **116 passed** (+50) |
+| Web `pnpm test` | **105 passed** (+8 JobPanel: running stage and progress, polling until done then outputs, frame alt text and URLs, refresh, polling stops when idle, axe 0 violations; failure + Try again with the header; Cancel → Run again; scheduled retry text; worker-down hint; API down; no actions while stopping) |
+| `make check` | pass (ruff, mypy strict, pytest, eslint, tsc, vitest); `pnpm build` passes |
+| Live, browser | A 90 s 1280×720 upload → **90 frames at 1/s (0:00–1:29), 16 kHz mono 1:30 (2.7 MB)**. All 12 preview images loaded at 1280×720. **axe-core: 0 violations** on the Processing page with results |
+
+### Fixes made during the task
+- **Frame timing bug found by the reference test.** With ffmpeg's default `fps` rounding, frame *n* actually showed time *n* + 0.4 s: it is the last frame in [*n* − 0.5, *n* + 0.5). Fixed with `round=up`, then re-checked against the decoded ground truth. Every frame now matches.
+- **JobPanel render loop.** Polling depended on the router object; with an unstable one it re-fetched thousands of times. The router is now read through a ref, and a test asserts that polling stops.
+
+### Known limitations
+- Frames are sampled at a fixed rate. Scene and slide-change keyframes are Task 09.
+- Only the first audio track is used. A lecture with the speech on another track would need a choice in the UI.
+- ffprobe and ffmpeg confirm the streams decode. They don't judge audio quality: silence or music-only audio passes this stage and will show up in speech-to-text (Task 08).
+- Frame images are served by the API without authentication, like everything else in this build (no accounts yet). Paths can't be guessed (UUIDs), but this is only fit for local or demo use.

@@ -52,7 +52,7 @@ All pages share one layout: skip link → sticky header (logo, Projects, Methodo
 | `/` | static | Landing: what SeeHere is designed to do, and how many pipeline stages are built |
 | `/upload` | static shell, client form | Upload form: file, title, rights confirmation; limits and retention read from the API; XHR progress, cancel, server refusal reasons (Task 05) |
 | `/projects` | static shell, client fetch | Live project list with loading, error/retry and empty states (Task 05) |
-| `/projects/[projectId]/processing` | partial prerender | Breadcrumb with the project title; "Upload checked" facts measured by the server; stage list |
+| `/projects/[projectId]/processing` | partial prerender | Breadcrumb with the project title; "Upload checked" facts measured by the server; live Analysis panel (job progress, cancel/retry, prepared audio and frame preview); stage list |
 | `/projects/[projectId]/results` | partial prerender | Breadcrumb and section links; empty results |
 | `/methodology` | static | Problem, pipeline with per-stage build status, verification states, modes, limits |
 | `/status` | static shell, client fetch | Live `GET /api/health` in an `aria-live` region |
@@ -79,6 +79,34 @@ Enums are text columns with CHECK constraints. Integrity rules (box ranges, time
 | `GET /api/projects/{id}` | Project with its source facts; 404 `not_found` |
 
 Errors: `{"error": {"code", "message"}}` with 400 (rights/title/empty), 413 (too large), 415 (not a supported video), 422 (no video track, no audio, too long, invalid request). Storage paths and file hashes are never returned.
+
+## Background jobs (Task 06)
+One or more worker processes (`make worker`) share the Postgres `job` table (ADR-005):
+
+```
+upload ──(same transaction)──▶ job: queued ──claim (FOR UPDATE SKIP LOCKED)──▶ running
+running ──handler ok──▶ succeeded
+running ──unexpected error, attempts left──▶ queued (run_after = now + 10 s · 2^(n-1), max 300 s)
+running ──PermanentJobError / out of attempts──▶ failed ──retry──▶ queued
+queued ──cancel──▶ cancelled        running ──cancel──▶ cancel_requested ──▶ cancelled
+running ──no heartbeat for 60 s (worker died)──▶ queued (or failed / cancelled)
+```
+
+Leases: every update after a claim requires `locked_by = <worker>`; a heartbeat thread refreshes it every 5 s. Delivery is at-least-once, so handlers replace their outputs. Users see only safe error messages; tracebacks stay in the worker log. Every 60 s each worker also recovers stale jobs and runs the retention sweep (expired projects: media directory and rows deleted; stale temp files removed).
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/projects/{id}/jobs` | Jobs with status, stage, progress, attempts, safe error; plus the server clock |
+| `POST /api/jobs/{id}/cancel` | Requires `X-SeeHere-Request: 1`. Queued → cancelled; running → stop requested. 409 if finished |
+| `POST /api/jobs/{id}/retry` | Requires `X-SeeHere-Request: 1`. Failed/cancelled → queued as a fresh run. 409 otherwise |
+
+## Media preparation (Task 07)
+Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source → 16 kHz mono PCM WAV (`projects/{id}/audio_16k.wav`, verified) → frames at `frame_sample_fps` (default 1/s, max 1280 px wide; `projects/{id}/frames/{n}.jpg`, frame n = picture on screen at n/fps) → replace previous outputs in one transaction. ffmpeg runs argv-only with `-protocol_whitelist file`, the `mov,matroska` demuxers, a `file:` prefix, a timeout, and is killed on cancel.
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/projects/{id}/media?preview=12` | Audio facts (rate, channels, duration, size); frame count, rate and range; up to 48 evenly spaced preview frames |
+| `GET /api/frames/{id}/image` | The JPEG (resolved inside the media root only), `nosniff`, private cache |
 
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.

@@ -39,6 +39,9 @@ Our own code is in `backend/src/seehere` and `web/src`. Everything below is a th
 
 No new backend packages: upload streaming uses FastAPI/Starlette and the standard library; video inspection calls the existing ffprobe binary.
 
+## Tasks 06–07
+No new dependencies. The job queue uses Postgres and SQLAlchemy; media preparation calls the existing FFmpeg/FFprobe binaries.
+
 ## Planned (added in their tasks; licence re-checked when added)
 OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · PyMuPDF (**AGPL-3.0**: acceptable for a public open-source repo; otherwise use pypdf) · python-pptx (MIT) · Piper TTS (MIT; voice licences per voice).
 
