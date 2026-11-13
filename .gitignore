@@ -23,7 +23,7 @@ next-env.d.ts
 
 # media and generated output (never commit uploads)
 var/
-media/
+/media/
 *.mp4
 *.mov
 *.webm

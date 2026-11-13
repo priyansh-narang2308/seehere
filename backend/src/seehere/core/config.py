@@ -30,10 +30,15 @@ class Settings(BaseSettings):
     max_upload_mb: int = 500
     max_video_duration_s: int = 600
 
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1024 * 1024
+
     # --- external binaries ---
     ffmpeg_bin: str = "ffmpeg"
     ffprobe_bin: str = "ffprobe"
     tesseract_bin: str = "tesseract"
+    ffprobe_timeout_s: float = 30.0
 
     # --- Vultr Serverless Inference (OpenAI-compatible) ---
     vultr_inference_base_url: str = "https://api.vultrinference.com/v1"
