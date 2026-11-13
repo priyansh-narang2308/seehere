@@ -5,18 +5,22 @@ import NotFound from "./not-found";
 import Home from "./page";
 import MethodologyPage from "./methodology/page";
 import ProjectsPage from "./projects/page";
-import ProcessingPage from "./projects/[projectId]/processing/page";
 import ResultsPage from "./projects/[projectId]/results/page";
 import StatusPage from "./status/page";
 import UploadPage from "./upload/page";
+import { ToastProvider } from "@/components/ui/toast";
 import { pipelineStages } from "@/lib/pipeline";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/" }));
+
+// The Processing page loads its project on the server (server-only module); its content is
+// covered by the SourceFacts tests and the browser check, so it is not rendered here.
 
 const pages: [string, () => React.ReactElement][] = [
   ["Home", Home],
   ["Upload", UploadPage],
   ["Projects", ProjectsPage],
   ["Methodology", MethodologyPage],
-  ["Processing", ProcessingPage],
   ["Results", ResultsPage],
   ["Status", StatusPage],
   ["Not found", NotFound],
@@ -26,13 +30,15 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe.each(pages)("%s page", (_name, Page) => {
   it("has exactly one h1 and no axe violations", async () => {
-    // The status page fetches the API; keep it pending so no network is used.
+    // Pages that fetch the API stay pending so no network is used.
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
     // Pages render inside the root layout's <main>, so mirror that here.
     const { container } = render(
-      <main>
-        <Page />
-      </main>,
+      <ToastProvider>
+        <main>
+          <Page />
+        </main>
+      </ToastProvider>,
     );
     expect(container.querySelectorAll("h1")).toHaveLength(1);
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
@@ -41,10 +47,18 @@ describe.each(pages)("%s page", (_name, Page) => {
 });
 
 describe("honesty of in-progress pages", () => {
-  it("states that uploads are not open, with no file input on the page", () => {
-    const { container } = render(<UploadPage />);
-    expect(screen.getByRole("heading", { name: /uploads are not open/i })).toBeInTheDocument();
-    expect(container.querySelector('input[type="file"]')).toBeNull();
+  it("asks for a rights confirmation and is truthful about retention", async () => {
+    const config = { max_upload_bytes: 1, max_video_duration_s: 1, accept: ".mp4", formats: ["MP4"], retention_hours: 24 };
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(config)));
+    const { container } = render(
+      <ToastProvider>
+        <UploadPage />
+      </ToastProvider>,
+    );
+    expect(container.querySelector('input[type="file"]')).not.toBeNull();
+    expect(screen.getByRole("checkbox", { name: /own this video or have permission/i })).toBeInTheDocument();
+    expect(await screen.findByText(/Automatic deletion is not built yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/deleted automatically/i)).toBeNull();
   });
 
   it("reports the real number of built pipeline stages", () => {

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Container } from "@/components/layout/page";
 import { ProjectTabs } from "@/components/project/project-tabs";
-import { isUuid, shortId } from "@/lib/ids";
+import { getProject } from "@/lib/projects.server";
 
 export default function ProjectLayout({ children, params }: LayoutProps<"/projects/[projectId]">) {
   return (
@@ -21,7 +21,8 @@ export default function ProjectLayout({ children, params }: LayoutProps<"/projec
 
 async function ProjectNav({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  if (!isUuid(projectId)) notFound();
+  const project = await getProject(projectId);
+  if (!project) notFound();
 
   return (
     <div className="space-y-5">
@@ -36,13 +37,13 @@ async function ProjectNav({ params }: { params: Promise<{ projectId: string }> }
             <ChevronRight className="size-3.5" />
           </li>
           <li>
-            <span aria-current="location" className="font-mono">
-              Project {shortId(projectId)}
+            <span aria-current="location" className="font-medium text-ink">
+              {project.title}
             </span>
           </li>
         </ol>
       </nav>
-      <ProjectTabs projectId={projectId} />
+      <ProjectTabs projectId={project.id} />
     </div>
   );
 }

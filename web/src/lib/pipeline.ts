@@ -16,8 +16,8 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "upload",
     name: "Upload and rights check",
-    summary: "You confirm you own the video or may process it. The file is size-capped and type-checked.",
-    status: "not_built",
+    summary: "You confirm you own the video or may process it. The file is size-capped and identified by its content.",
+    status: "built",
   },
   {
     id: "media",
