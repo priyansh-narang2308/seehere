@@ -11,7 +11,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import Connection, Engine, create_engine, make_url, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.core.config import get_settings
 
@@ -82,3 +82,13 @@ def db(migrated_engine: Engine) -> Iterator[Session]:
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def sessions(migrated_engine: Engine) -> Iterator[sessionmaker[Session]]:
+    """Real, committing sessions (separate connections), for tests where several workers or
+    processes must see each other's committed rows. All data is truncated afterwards."""
+    factory = sessionmaker(bind=migrated_engine, expire_on_commit=False)
+    yield factory
+    with migrated_engine.begin() as conn:
+        conn.execute(text("TRUNCATE project CASCADE"))
