@@ -50,16 +50,35 @@ All pages share one layout: skip link → sticky header (logo, Projects, Methodo
 | Route | Rendering | Content |
 |---|---|---|
 | `/` | static | Landing: what SeeHere is designed to do, and how many pipeline stages are built |
-| `/upload` | static | States that uploads are not open yet (Task 05 builds them); what you will need |
-| `/projects` | static | Empty list (no project storage yet) |
-| `/projects/[projectId]/processing` | partial prerender | Breadcrumb and project section links (read from params inside Suspense); stage list |
+| `/upload` | static shell, client form | Upload form: file, title, rights confirmation; limits and retention read from the API; XHR progress, cancel, server refusal reasons (Task 05) |
+| `/projects` | static shell, client fetch | Live project list with loading, error/retry and empty states (Task 05) |
+| `/projects/[projectId]/processing` | partial prerender | Breadcrumb with the project title; "Upload checked" facts measured by the server; stage list |
 | `/projects/[projectId]/results` | partial prerender | Breadcrumb and section links; empty results |
 | `/methodology` | static | Problem, pipeline with per-stage build status, verification states, modes, limits |
 | `/status` | static shell, client fetch | Live `GET /api/health` in an `aria-live` region |
 | `/design` | static | Design system reference |
-| not found | static | `app/not-found.tsx`; `src/proxy.ts` returns a real 404 for non-UUID project IDs |
+| not found | static | `app/not-found.tsx`. `src/proxy.ts` returns a real 404 for malformed IDs and for projects the API reports missing; if the API cannot answer, the request continues to the error boundary |
 
 Pipeline build status shown in the UI comes from one file, `web/src/lib/pipeline.ts`. A stage is flipped to `built` only in the commit that implements and tests it.
+
+## Data model (Task 04)
+18 tables in Postgres, created by one Alembic migration (`backend/migrations`), models in `backend/src/seehere/db/models/`:
+
+- **Core:** `project` → `media_asset` (source video and derived files, with ffprobe output), `job` (queue rows for Task 06).
+- **Analysis:** `transcript_segment` / `transcript_word`, `frame`, `slide`, `ocr_region`, `visual_unit`, `reference_link`.
+- **Descriptions:** `description_cue`, `evidence`, `verification_event`, `schedule_run` / `schedule_placement`, `audio_clip`, `review_decision`, `export_artifact`.
+
+Enums are text columns with CHECK constraints. Integrity rules (box ranges, time ordering, evidence sources, review edits, pause reasons) are enforced by Postgres. Every foreign key is indexed; deleting a project cascades.
+
+## Upload API (Task 05)
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/config/upload` | Size limit (bytes), duration limit (s), accept list, format names, retention hours |
+| `POST /api/projects` | Body = raw file. Headers: `X-SeeHere-Title`, `X-SeeHere-Filename` (URL-encoded), `X-SeeHere-Rights-Confirmed: true`. Streams to a 0600 temp file under the size cap, identifies the content with ffprobe (`file:` protocol, `mov,matroska` demuxers only), requires video + audio streams and a duration within the limit, then atomically stores `{project_id}/source.{ext}` and creates the project and media rows. 201 → project |
+| `GET /api/projects` | Newest first, up to 100 |
+| `GET /api/projects/{id}` | Project with its source facts; 404 `not_found` |
+
+Errors: `{"error": {"code", "message"}}` with 400 (rights/title/empty), 413 (too large), 415 (not a supported video), 422 (no video track, no audio, too long, invalid request). Storage paths and file hashes are never returned.
 
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.

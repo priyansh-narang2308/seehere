@@ -124,3 +124,111 @@
 - The status code for a well-formed UUID of a project that doesn't exist will need the same proxy-or-API approach once projects exist (Task 04/05).
 - Screen-reader testing (VoiceOver/NVDA) is planned for Task 32. This task used axe and keyboard only.
 - The pipeline stage list will change as later tasks land. Only those tasks may flip a stage to `built`.
+
+## TASK 04: Database schema and migrations
+- **Status:** COMPLETE (local). No cloud resources created. Committed in 4 commits (not pushed).
+- **Date:** 14 Nov 2026, 00:10–00:18 IST.
+
+### Implemented
+- **Base:** `backend/src/seehere/db/base.py`.
+  - A declarative `Base` with a deterministic constraint-naming convention, so migrations are stable.
+  - UUID primary-key, `created_at` and `updated_at` mixins.
+  - `str_enum()`: enums are stored as text with a CHECK constraint, not as native Postgres enums, so adding a value is a simple migration.
+- **Domain enums:** `db/enums.py`. Project, job, visual, reference, description, verification, review, evidence, solver, schedule and export states.
+  - The verification states match the product: `verified_text_match`, `corroborated`, `uncertain`, `needs_review`.
+- **18 tables:** `db/models/`.
+  - The tables: project, media_asset, job, transcript_segment, transcript_word, frame, slide, ocr_region, visual_unit, reference_link, description_cue, evidence, verification_event, schedule_run, schedule_placement, audio_clip, review_decision, export_artifact.
+  - Rules are enforced by the database, not only by Python:
+    - Normalized bounding boxes (0–1, positive size) and start < end time ordering.
+    - A SHA-256 hex check on media files; job progress between 0 and 1; a unique job idempotency key.
+    - Every evidence row points to the source its kind requires.
+    - A "linked" reference must have a target region or unit.
+    - A schedule pause must give a reason; an "edit" review must carry the edited text.
+  - Every foreign key is indexed. Deleting a project cascades through its lineage.
+  - A partial index `ix_job_claimable` is ready for the Task 06 worker.
+- **Session:** `db/session.py`. A cached engine and session factory, plus a `get_db()` FastAPI dependency.
+- **Alembic:** `backend/migrations`.
+  - It reads the URL from settings, so no credentials are in `alembic.ini`, and compares column types.
+  - The initial migration creates 18 tables and 31 indexes. Run it with `make migrate`.
+
+### Tests executed and results
+| Check | Result |
+|---|---|
+| `test_migrations.py` (4) | upgrade creates exactly the model tables; **no drift** between models and migration (`compare_metadata` empty); every FK column indexed; downgrade to base drops everything, then upgrade again succeeds |
+| `test_models.py` (12) | Defaults; DB-level cascade delete; enum CHECK rejects unknown values; status/progress/hash/box/time/evidence/reference/pause/review rules each rejected by Postgres; a full lineage through every table inserts and cascades |
+| Test isolation | A throwaway `seehere_test` database is dropped and re-created (the name must end in `_test`). Each test runs in a savepoint that is rolled back |
+| `make check` | pass (ruff, mypy strict) |
+
+### Fixes made during the task
+- Evidence source FKs and reference word FKs had no index. Added indexes and regenerated the migration (caught by the FK-index test).
+- `now()` is fixed within one transaction, so the ordering test sets `created_at` explicitly.
+
+### Known limitations
+- The schema follows the planned pipeline. Later tasks may add columns through new migrations, never by editing this one.
+- No row-level multi-tenancy: there are no user accounts in this build.
+
+## TASK 05: Secure upload system
+- **Status:** COMPLETE (local). No cloud resources created. Committed in 11 commits (not pushed).
+- **Date:** 14 Nov 2026, 00:19–00:35 IST.
+
+### Implemented
+- **Upload API:** `POST /api/projects`, in `backend/src/seehere/api/projects.py`.
+  - The request body is the raw file, streamed to disk in 1 MiB chunks, so the whole file is never held in memory.
+  - Metadata travels in URL-encoded headers: `X-SeeHere-Title`, `X-SeeHere-Filename` and `X-SeeHere-Rights-Confirmed`.
+  - Checks, in order:
+    1. The rights confirmation is required (400).
+    2. The title must be 1–200 characters.
+    3. The filename is sanitized: the path is stripped, it is Unicode-normalized, unsafe characters are replaced, and its length is capped.
+    4. The size cap is enforced from Content-Length (413), and again while streaming (413). An empty body is rejected (400).
+    5. **ffprobe identifies the content.** The extension and Content-Type are ignored.
+  - The ffprobe call uses `-protocol_whitelist file -format_whitelist mov,matroska`, so HLS playlists, concat lists, images and text are refused (415).
+  - The file needs a real video stream (not cover art) and an audio stream (422 `no_audio_stream`), and a duration within the limit (422 `too_long`).
+- **Storage:** `media/storage.py`.
+  - Files are written to temp with mode 0600, then atomically moved to a server-chosen path: `{project_uuid}/source.{ext}`.
+  - `MediaStore.resolve` blocks path escapes, including through symlinks.
+  - If the database commit fails, the stored file is removed.
+  - The project gets `expires_at = now + retention_hours`.
+- **Read endpoints:**
+  - `GET /api/projects` (newest first, up to 100) and `GET /api/projects/{id}` (404 `not_found`).
+  - `GET /api/config/upload` returns the size and duration limits, accepted formats and the retention period.
+  - Responses never expose the storage path or file hash. All errors use one shape: `{"error":{"code","message"}}`.
+- **Web: Upload page** (`/upload`).
+  - A real form: a file input (with an accept list taken from the server), a title that auto-fills from the filename, and a rights checkbox.
+  - Client checks mirror the server's, and focus moves to the first invalid field.
+  - Shows byte-level progress (XHR) and a cancel button, then a "Checking the video…" state. Server refusal reasons appear in an alert. Success leads to the project's Processing page.
+- **Web: Projects page** (`/projects`). A live list showing the title, upload date, length, size, format and status, with loading, error (with retry) and empty states.
+- **Web: Processing page.** An "Upload checked" panel with the server-measured file facts (name, length, resolution, size, format, codecs) and the expiry time. It says plainly that analysis has not started.
+- **Web: project routes.** They load the real project. The breadcrumb shows its title. `src/proxy.ts` asks the API and returns a **real 404** for unknown projects. If the API is down, the error page shows instead of a false 404.
+- `pipeline.ts`: the "Upload and rights check" stage is now `built`. That is 1 of 15 stages.
+
+### Tests executed and results
+| Check | Result |
+|---|---|
+| Backend `pytest` | **66 passed** (+45 this task: 20 storage, 25 upload). Real ffmpeg-generated MP4, MOV, WebM and MKV files are each accepted and stored with the right type and codecs |
+| Upload rejects (all tested) | Missing or non-`true` rights; empty, blank or over-long title; oversized by header and by stream; empty body; plain text, HLS playlist, concat list and PNG all named `.mp4` (415); video with no audio, audio-only MP4, and over the duration limit (422). A failed database write leaves no file. No file is left in temp or media after any reject |
+| Path safety | Filenames with `../`, Windows `..\` paths, absolute paths, control characters, NUL bytes and reserved characters are sanitized; non-English names are kept; long names are capped by UTF-8 bytes. The stored path never uses the filename. `resolve()` refuses `..`, absolute paths, NUL and symlink escapes. Temp and stored files are mode 0600 |
+| Web `pnpm test` | **97 passed** (+44): API client (format helpers, error mapping, XHR upload with a fake XHR: headers, progress, phases, abort, network error), form validation and flow (errors, focus order, progress bar, navigation on success, server refusal shown, works without limits), project list states and axe, SourceFacts, proxy (malformed, unknown, existing, API down) |
+| `make check` | pass (ruff, mypy strict, pytest, eslint, tsc, vitest) |
+| `pnpm build` | pass. Project routes are partially prerendered |
+| Browser: real upload | 8 s 640×360 H.264/AAC test video through the real form → "Uploading 0 B of 122 KB" → "Checking the video…" → Processing page showing the measured facts. The project appears in `/projects` |
+| Browser: refusal | An HLS playlist named `.mp4` → "This file is not a supported video…", with the form still usable |
+| Browser: axe-core (WCAG 2.1 A/AA + best practice) | **0 violations** on `/upload` (with an error showing), `/projects` (with items) and a project's Processing page |
+| HTTP status | Unknown UUID **404**; malformed ID **404**; existing project 200 |
+| API down | Projects shows "could not be reached" with Try again; the project page shows the error boundary, not a 404 |
+
+### Fixes made during the task
+- `.gitignore` had `media/`, which also ignored the `seehere/media` source package. Anchored it to `/media/`.
+- The upload page claimed files "are deleted automatically". There is no deletion job yet, so it now states the real retention period and that automatic deletion is not built.
+- From the browser test:
+  - Focus went to the title even though the file field comes first. Fixed.
+  - A stale title error stayed after the title auto-filled. Fixed.
+  - "10:00 long" was ambiguous; it now reads "10 minutes".
+  - The success toast said "ready for processing"; it now says "uploaded and checked".
+  - A well-formed but unknown project ID returned a 200 status. Fixed in the proxy.
+
+### Known limitations
+- **Expired uploads are not deleted yet.** `expires_at` is recorded, but the cleanup job needs the worker from Task 06.
+- No authentication or user accounts: anyone who can reach the API can upload and list. This is acceptable only for a local or demo deployment. The project list is not per-user.
+- No upload resume. A dropped connection means starting again. Uploads go straight to the API, not to object storage.
+- ffprobe identifies the container and streams; it does not prove the video plays end to end. Full decode and normalization come in Task 07.
+- The `starlette.testclient` deprecation warning remains (cosmetic).

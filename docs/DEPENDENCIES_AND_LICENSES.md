@@ -32,6 +32,13 @@ Our own code is in `backend/src/seehere` and `web/src`. Everything below is a th
 | @testing-library/react, user-event, jest-dom | component tests (dev) | MIT |
 | axe-core | accessibility checks in tests (dev) | MPL-2.0 (unmodified, dev only) |
 
+## Added in Tasks 04–05
+| Dependency | Use | Licence |
+|---|---|---|
+| server-only | keeps server data loaders out of client bundles | MIT |
+
+No new backend packages: upload streaming uses FastAPI/Starlette and the standard library; video inspection calls the existing ffprobe binary.
+
 ## Planned (added in their tasks; licence re-checked when added)
 OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · PyMuPDF (**AGPL-3.0**: acceptable for a public open-source repo; otherwise use pypdf) · python-pptx (MIT) · Piper TTS (MIT; voice licences per voice).
 

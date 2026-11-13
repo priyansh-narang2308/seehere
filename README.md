@@ -3,7 +3,7 @@
 **Hear what the lecture shows, not just what it says.**
 Evidence-grounded audio descriptions for lecture videos. HackGlobal 2026, Track 02: Multimodal and Accessibility.
 
-> Status: **early build (Tasks 01–03).** Implemented so far: health checks, the design system (`/design`) and the application shell with all main routes. The lecture pipeline is not built yet; the Methodology page shows the live build status of each stage. See `docs/PROJECT_ROADMAP.md`. This README states only what works.
+> Status: **early build (Tasks 01–05).** Implemented so far: health checks, the design system (`/design`), the application shell, the database schema, and secure lecture upload (content-checked, rights-confirmed, size- and length-limited) with a project list. Analysis of an uploaded lecture is not built yet; the Methodology page shows the live build status of each stage. See `docs/PROJECT_ROADMAP.md`. This README states only what works.
 
 ## What it will do
 
