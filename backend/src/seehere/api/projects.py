@@ -10,7 +10,8 @@ Metadata travels in headers, URL-encoded so any Unicode title is safe in a heade
 The body is streamed to a private temp file in 1 MiB chunks while its size and SHA-256 are
 counted, so memory use is constant and the size cap is enforced before the whole file arrives.
 The file is then identified by content with ffprobe. Only an accepted video is moved into place,
-and the project and its media row are committed together; any failure removes the file.
+and the project, its media row and its first pipeline job (media preparation) are committed
+together; any failure removes the file.
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from seehere.db.models import MediaAsset, Project
 from seehere.db.session import get_db
 from seehere.media.probe import VideoProbe, inspect_lecture_video
 from seehere.media.storage import MediaStore, sanitize_filename, source_video_path
+from seehere.pipeline import start_pipeline
 
 router = APIRouter(prefix="/api", tags=["projects"])
 
@@ -179,29 +181,30 @@ def _persist(
     project = Project(
         id=uuid.uuid4(),
         title=title,
-        status=ProjectStatus.UPLOADED,
+        # Media preparation is queued in the same transaction below.
+        status=ProjectStatus.PROCESSING,
         rights_confirmed_at=now,
         expires_at=now + timedelta(hours=settings.media_retention_hours),
     )
     relative = source_video_path(project.id, probe.extension)
-    project.media.append(
-        MediaAsset(
-            kind=MediaKind.SOURCE_VIDEO,
-            original_filename=filename,
-            storage_path=relative,
-            mime_type=probe.mime_type,
-            size_bytes=size,
-            sha256=sha256,
-            duration_s=probe.duration_s,
-            width=probe.width,
-            height=probe.height,
-            video_codec=probe.video_codec,
-            audio_codec=probe.audio_codec,
-            probe=probe.raw,
-        )
+    source = MediaAsset(
+        kind=MediaKind.SOURCE_VIDEO,
+        original_filename=filename,
+        storage_path=relative,
+        mime_type=probe.mime_type,
+        size_bytes=size,
+        sha256=sha256,
+        duration_s=probe.duration_s,
+        width=probe.width,
+        height=probe.height,
+        video_codec=probe.video_codec,
+        audio_codec=probe.audio_codec,
+        probe=probe.raw,
     )
+    project.media.append(source)
     db.add(project)
     db.flush()
+    start_pipeline(db, project.id, source.id)
     dest = store.promote(temp, relative)
     os.chmod(dest, 0o600)
     try:

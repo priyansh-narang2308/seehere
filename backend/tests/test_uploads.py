@@ -136,7 +136,7 @@ def test_accepts_supported_videos(
     status, body = _upload(client, videos[kind], title="  Lecture 7 — Graphs  ")
     assert status == 201, body
     assert body["title"] == "Lecture 7 — Graphs"
-    assert body["status"] == "uploaded"
+    assert body["status"] == "processing"  # media preparation is queued
     src = body["source"]
     assert (src["mime_type"], src["video_codec"], src["width"], src["height"]) == (
         mime,
