@@ -41,7 +41,12 @@ def videos(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
         "webm": _ffmpeg(
             d / "ok.webm", *src, "-t", "2", "-c:v", "libvpx-vp9", "-c:a", "libopus", "-shortest"
         ),
+        "mkv": _ffmpeg(d / "ok.mkv", *src, "-t", "2", *h264),
         "long": _ffmpeg(d / "long.mp4", *src, "-t", "5", *h264),
+        # Audio only, in an MP4 container with a video extension.
+        "audio_only": _ffmpeg(
+            d / "voice.mp4", "-f", "lavfi", "-i", "sine", "-t", "2", "-c:a", "aac", "-f", "mp4"
+        ),
         "no_audio": _ffmpeg(
             d / "silent.mp4",
             "-f",
@@ -115,6 +120,7 @@ def _count(db: Session) -> int:
         ("mp4", ".mp4", "video/mp4", "h264"),
         ("mov", ".mov", "video/quicktime", "h264"),
         ("webm", ".webm", "video/webm", "vp9"),
+        ("mkv", ".mkv", "video/x-matroska", "h264"),
     ],
 )
 def test_accepts_supported_videos(
@@ -220,6 +226,7 @@ def test_rejects_empty_body(client: TestClient, db: Session, media_dir: Path) ->
         ("text", 415, "unsupported_format"),
         ("png", 415, "unsupported_format"),
         ("no_audio", 422, "no_audio_stream"),
+        ("audio_only", 422, "no_video_stream"),
         ("long", 422, "too_long"),
     ],
 )
