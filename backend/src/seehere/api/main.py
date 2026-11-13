@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from seehere.api.errors import install_error_handlers
 from seehere.api.health import HealthReport, build_report
+from seehere.api.jobs import router as jobs_router
 from seehere.api.projects import router as projects_router
 from seehere.core.config import get_settings
 
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
     )
     install_error_handlers(app)
     app.include_router(projects_router)
+    app.include_router(jobs_router)
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict[str, str]:
