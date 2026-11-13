@@ -47,7 +47,7 @@ class VideoProbe:
     raw: dict[str, Any]
 
 
-def run_ffprobe(path: Path, settings: Settings) -> dict[str, Any]:
+def run_ffprobe(path: Path, settings: Settings, demuxers: str = ALLOWED_DEMUXERS) -> dict[str, Any]:
     binary = shutil.which(settings.ffprobe_bin)
     if binary is None:
         raise RuntimeError("ffprobe is not installed")
@@ -58,7 +58,7 @@ def run_ffprobe(path: Path, settings: Settings) -> dict[str, Any]:
         "-protocol_whitelist",
         "file",
         "-format_whitelist",
-        ALLOWED_DEMUXERS,
+        demuxers,
         "-print_format",
         "json",
         "-show_format",
@@ -147,4 +147,26 @@ def inspect_lecture_video(path: Path, settings: Settings) -> VideoProbe:
         video_codec=video_codec,
         audio_codec=audio_codec,
         raw={"format": raw_format, "streams": streams},
+    )
+
+
+@dataclass(frozen=True)
+class AudioProbe:
+    codec: str
+    sample_rate: int
+    channels: int
+    duration_s: float
+
+
+def inspect_wav(path: Path, settings: Settings) -> AudioProbe:
+    """Measure a WAV file we produced (only the wav demuxer may open it)."""
+    data = run_ffprobe(path, settings, demuxers="wav")
+    stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "audio"), None)
+    if stream is None:
+        raise UploadRejected("no_audio_stream", "The extracted audio is empty.")
+    return AudioProbe(
+        codec=str(stream.get("codec_name")),
+        sample_rate=int(stream.get("sample_rate", 0)),
+        channels=int(stream.get("channels", 0)),
+        duration_s=round(float(data.get("format", {}).get("duration") or 0), 3),
     )
