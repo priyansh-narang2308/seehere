@@ -10,10 +10,15 @@ module calls a network service.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+# Called with the fraction of the audio processed so far (0..1). It may raise to stop the work
+# (the job worker raises JobCancelled from it when cancellation was requested).
+ProgressCallback = Callable[[float], None]
 
 
 class Capability(StrEnum):
@@ -48,10 +53,21 @@ class Word:
 
 
 @dataclass(frozen=True)
+class Segment:
+    """A stretch of speech as the recognizer grouped it, with its words (if timed)."""
+
+    text: str
+    start_ms: int
+    end_ms: int
+    words: list[Word] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class Transcript:
     text: str
     language: str | None
     words: list[Word] = field(default_factory=list)
+    segments: list[Segment] = field(default_factory=list)
     provider: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -68,7 +84,12 @@ class SynthesizedAudio:
 class SpeechToText(Protocol):
     def info(self) -> ProviderInfo: ...
 
-    def transcribe(self, audio_path: Path, language: str | None = None) -> Transcript: ...
+    def transcribe(
+        self,
+        audio_path: Path,
+        language: str | None = None,
+        progress: ProgressCallback | None = None,
+    ) -> Transcript: ...
 
 
 @runtime_checkable

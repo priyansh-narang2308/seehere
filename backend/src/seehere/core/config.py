@@ -67,7 +67,15 @@ class Settings(BaseSettings):
     # --- optional partner / fallback providers ---
     gemini_api_key: SecretStr | None = None
     smallest_api_key: SecretStr | None = None
-    local_stt_model: str = "small.en"  # faster-whisper model (word timestamps)
+
+    # --- speech-to-text (Task 08): local faster-whisper, the only STT with word timings ---
+    local_stt_model: str = "small.en"  # faster-whisper model name or a local model directory
+    local_stt_compute_type: str = "int8"
+    local_stt_cpu_threads: int = 0  # 0 = let CTranslate2 decide
+    local_stt_beam_size: int = 5
+    # Model cache directory; None uses the Hugging Face default (~/.cache/huggingface).
+    local_stt_model_dir: Path | None = None
+    vultr_stt_timeout_s: float = 120.0
 
     # --- scheduling ---
     extended_pause_budget_pct: float = 8.0
