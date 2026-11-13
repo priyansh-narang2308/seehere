@@ -31,9 +31,9 @@ export function BackendStatus() {
   }, []);
 
   return (
-    <section aria-labelledby="status-heading" className="w-full max-w-xl">
+    <section aria-labelledby="status-heading" className="w-full max-w-2xl">
       <Eyebrow as="h2" id="status-heading">
-        System status
+        API and dependencies
       </Eyebrow>
       <div role="status" aria-live="polite" className="mt-3">
         {error && <p className="text-sm text-danger">API unreachable: {error}</p>}
