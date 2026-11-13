@@ -67,6 +67,18 @@ export type PreparedMedia = {
   };
 };
 
+export type TranscriptWord = { text: string; start_s: number; end_s: number; confidence: number | null };
+
+/** The timed transcript from speech-to-text. `available` is false until it has run. */
+export type Transcript = {
+  available: boolean;
+  provider: string | null;
+  language: string | null;
+  duration_s: number | null;
+  word_count: number;
+  segments: { start_s: number; end_s: number; text: string; words: TranscriptWord[] }[];
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

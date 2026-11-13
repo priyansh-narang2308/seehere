@@ -28,8 +28,8 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "speech",
     name: "Speech-to-text with word timings",
-    summary: "Every spoken word gets a start and end time, so pauses can be measured.",
-    status: "not_built",
+    summary: "Every spoken word gets a start and end time, so pauses can be measured. Runs locally with Whisper.",
+    status: "built",
   },
   {
     id: "scenes",
