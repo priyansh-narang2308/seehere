@@ -233,8 +233,7 @@ export function UploadForm() {
           <li>The file is checked by its content, not its name. Playlists and other formats are refused.</li>
           {config && (
             <li>
-              Uploads are marked to expire after {config.retention_hours} hours. Automatic deletion is not built
-              yet.
+              The video and everything made from it are deleted {config.retention_hours} hours after upload.
             </li>
           )}
         </ul>

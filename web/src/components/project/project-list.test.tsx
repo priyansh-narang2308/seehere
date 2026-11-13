@@ -83,12 +83,12 @@ describe("SourceFacts", () => {
     ]) {
       expect(screen.getByText(term).nextElementSibling).toHaveTextContent(value);
     }
-    expect(screen.getByText(/Marked to expire/)).toHaveTextContent("15 Nov 2026, 10:00 UTC");
+    expect(screen.getByText(/Scheduled for deletion/)).toHaveTextContent("15 Nov 2026, 10:00 UTC");
   });
 
   it("says so when no source video is attached", () => {
     render(<SourceFacts project={{ ...project, source: null, expires_at: null }} />);
     expect(screen.getByText("No source video is attached to this project.")).toBeInTheDocument();
-    expect(screen.queryByText(/Marked to expire/)).toBeNull();
+    expect(screen.queryByText(/Scheduled for deletion/)).toBeNull();
   });
 });

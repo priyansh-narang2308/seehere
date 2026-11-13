@@ -42,7 +42,7 @@ export function SourceFacts({ project }: { project: Project }) {
       )}
       {project.expires_at && (
         <p className="border-t border-border px-5 py-3 text-xs text-muted">
-          Marked to expire <time dateTime={project.expires_at}>{dateFormat.format(new Date(project.expires_at))} UTC</time>.
+          Scheduled for deletion on <time dateTime={project.expires_at}>{dateFormat.format(new Date(project.expires_at))} UTC</time>.
         </p>
       )}
     </section>

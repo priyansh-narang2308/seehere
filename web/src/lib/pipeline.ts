@@ -22,8 +22,8 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "media",
     name: "Media inspection",
-    summary: "The video is probed and normalized: a speech-ready audio track and sampled frames.",
-    status: "not_built",
+    summary: "The video is checked again and prepared: a 16 kHz speech track and one frame per second.",
+    status: "built",
   },
   {
     id: "speech",

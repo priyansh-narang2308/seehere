@@ -70,7 +70,7 @@ describe("UploadForm", () => {
   it("shows the server's limits and retention once loaded", async () => {
     renderForm();
     expect(await screen.findByText(/up to 1\.0 MB and 3 hours long/)).toBeInTheDocument();
-    expect(screen.getByText(/expire after 24 hours\. Automatic deletion is not built yet/)).toBeInTheDocument();
+    expect(screen.getByText(/everything made from it are deleted 24 hours after upload/)).toBeInTheDocument();
     expect(screen.getByLabelText(/video file/i)).toHaveAttribute("accept", config.accept);
   });
 

@@ -57,8 +57,7 @@ describe("honesty of in-progress pages", () => {
     );
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
     expect(screen.getByRole("checkbox", { name: /own this video or have permission/i })).toBeInTheDocument();
-    expect(await screen.findByText(/Automatic deletion is not built yet/)).toBeInTheDocument();
-    expect(screen.queryByText(/deleted automatically/i)).toBeNull();
+    expect(await screen.findByText(/deleted 24 hours after upload/)).toBeInTheDocument();
   });
 
   it("reports the real number of built pipeline stages", () => {
