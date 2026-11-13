@@ -1,4 +1,4 @@
-.PHONY: db-up db-down migrate api web test lint typecheck check
+.PHONY: db-up db-down migrate api worker web test lint typecheck check
 
 db-up:        ## start local Postgres (Docker)
 	docker compose -f docker-compose.dev.yml up -d --wait db
@@ -8,6 +8,8 @@ migrate:      ## apply database migrations to DATABASE_URL
 	cd backend && uv run alembic upgrade head
 api:          ## run FastAPI with reload on :8000
 	cd backend && uv run uvicorn seehere.api.main:app --reload --host 127.0.0.1 --port 8000
+worker:       ## run the background job worker (Ctrl-C stops after the current job)
+	cd backend && uv run python -m seehere.jobs.worker
 web:          ## run Next.js on :3000
 	cd web && pnpm dev
 test:

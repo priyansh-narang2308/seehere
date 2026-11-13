@@ -10,6 +10,8 @@ from __future__ import annotations
 import contextlib
 import os
 import re
+import shutil
+import time
 import unicodedata
 import uuid
 from pathlib import Path
@@ -33,10 +35,22 @@ def sanitize_filename(name: str) -> str:
     return name or "upload"
 
 
+def project_dir(project_id: uuid.UUID) -> str:
+    return f"projects/{project_id}"
+
+
 def source_video_path(project_id: uuid.UUID, extension: str) -> str:
     if not re.fullmatch(r"\.[a-z0-9]{2,5}", extension):
         raise UnsafePathError(f"bad extension {extension!r}")
-    return f"projects/{project_id}/source{extension}"
+    return f"{project_dir(project_id)}/source{extension}"
+
+
+def normalized_audio_path(project_id: uuid.UUID) -> str:
+    return f"{project_dir(project_id)}/audio_16k.wav"
+
+
+def frames_dir(project_id: uuid.UUID) -> str:
+    return f"{project_dir(project_id)}/frames"
 
 
 class MediaStore:
@@ -60,6 +74,51 @@ class MediaStore:
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(fd)
         return path
+
+    def new_temp_dir(self) -> Path:
+        """Create a private, empty working directory under tmp/ (0700)."""
+        tmp_dir = self.root / "tmp"
+        tmp_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path = tmp_dir / f"{uuid.uuid4().hex}.work"
+        path.mkdir(mode=0o700)
+        return path
+
+    def replace_dir(self, temp_dir: Path, relative: str) -> Path:
+        """Move a finished working directory into place, replacing any previous version."""
+        dest = self.resolve(relative)
+        dest.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if dest.exists():
+            shutil.rmtree(dest)
+        os.replace(temp_dir, dest)
+        return dest
+
+    def remove_tree(self, relative: str) -> None:
+        """Delete a stored directory and everything in it. Missing directories are fine."""
+        path = self.resolve(relative)
+        if (self.root / relative).is_symlink():
+            raise UnsafePathError(relative)
+        if path.exists():
+            shutil.rmtree(path)
+
+    def clean_temp(self, max_age_s: float) -> int:
+        """Remove abandoned partial uploads and work directories older than max_age_s."""
+        tmp_dir = self.root / "tmp"
+        if not tmp_dir.is_dir():
+            return 0
+        cutoff = time.time() - max_age_s
+        removed = 0
+        for entry in tmp_dir.iterdir():
+            try:
+                if entry.lstat().st_mtime >= cutoff:
+                    continue
+                if entry.is_dir() and not entry.is_symlink():
+                    shutil.rmtree(entry)
+                else:
+                    entry.unlink()
+                removed += 1
+            except FileNotFoundError:
+                continue
+        return removed
 
     def promote(self, temp: Path, relative: str) -> Path:
         """Atomically move a finished temp file to its final location."""
