@@ -82,19 +82,23 @@ class Evidence(UUIDPrimaryKey, CreatedAt, Base):
         ForeignKey("description_cue.id", ondelete="CASCADE"), index=True
     )
     kind: Mapped[EvidenceKind] = mapped_column(str_enum(EvidenceKind, "evidence_kind"))
-    frame_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("frame.id", ondelete="CASCADE"))
-    ocr_region_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("ocr_region.id", ondelete="CASCADE")
+    frame_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("frame.id", ondelete="CASCADE"), index=True
     )
-    slide_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("slide.id", ondelete="CASCADE"))
+    ocr_region_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ocr_region.id", ondelete="CASCADE"), index=True
+    )
+    slide_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("slide.id", ondelete="CASCADE"), index=True
+    )
     visual_unit_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("visual_unit.id", ondelete="CASCADE")
+        ForeignKey("visual_unit.id", ondelete="CASCADE"), index=True
     )
     start_word_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("transcript_word.id", ondelete="CASCADE")
+        ForeignKey("transcript_word.id", ondelete="CASCADE"), index=True
     )
     end_word_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("transcript_word.id", ondelete="CASCADE")
+        ForeignKey("transcript_word.id", ondelete="CASCADE"), index=True
     )
     note: Mapped[str | None] = mapped_column(Text)
 

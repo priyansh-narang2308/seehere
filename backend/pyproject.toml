@@ -38,6 +38,8 @@ ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
+# Generated migrations embed CHECK-constraint SQL as single string literals.
+"migrations/versions/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

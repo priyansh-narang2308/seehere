@@ -57,7 +57,8 @@ class TranscriptWord(UUIDPrimaryKey, Base):
     media_asset_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("media_asset.id", ondelete="CASCADE")
     )
-    idx: Mapped[int] = mapped_column(Integer)  # position within the whole transcript
+    # position within the whole transcript
+    idx: Mapped[int] = mapped_column(Integer)
     start_s: Mapped[float] = mapped_column(Float)
     end_s: Mapped[float] = mapped_column(Float)
     text: Mapped[str] = mapped_column(String(100))
@@ -152,7 +153,8 @@ class VisualUnit(UUIDPrimaryKey, CreatedAt, Base):
     # 0 = never mentioned in speech, 1 = fully said aloud (seen-versus-said, Task 13).
     coverage_score: Mapped[float | None] = mapped_column(Float)
     priority: Mapped[float | None] = mapped_column(Float)
-    source: Mapped[str] = mapped_column(String(100))  # provider/model that produced it
+    # provider/model that produced it
+    source: Mapped[str] = mapped_column(String(100))
 
     __table_args__ = (
         CheckConstraint(_BOX_CHECK, name="box"),
@@ -173,10 +175,10 @@ class ReferenceLink(UUIDPrimaryKey, CreatedAt, Base):
     )
     phrase: Mapped[str] = mapped_column(Text)
     start_word_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("transcript_word.id", ondelete="CASCADE")
+        ForeignKey("transcript_word.id", ondelete="CASCADE"), index=True
     )
     end_word_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("transcript_word.id", ondelete="CASCADE")
+        ForeignKey("transcript_word.id", ondelete="CASCADE"), index=True
     )
     t_s: Mapped[float] = mapped_column(Float)
     visual_unit_id: Mapped[uuid.UUID | None] = mapped_column(
