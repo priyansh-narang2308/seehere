@@ -117,14 +117,17 @@ def _project(sessions: Sessions, settings: Settings, video: Path, ext: str = ".m
 
 
 def _run(sessions: Sessions, settings: Settings) -> Worker:
-    worker = Worker(HANDLERS, settings=settings, sessions=sessions)
+    # Only this stage: speech-to-text (queued by it) is covered in test_transcribe.py.
+    worker = Worker({JOB_KIND: HANDLERS[JOB_KIND]}, settings=settings, sessions=sessions)
     assert worker.run_once() is True
     return worker
 
 
 def _job(sessions: Sessions, project_id: uuid.UUID) -> Job:
     with sessions() as s:
-        return s.scalars(select(Job).where(Job.project_id == project_id)).one()
+        return s.scalars(
+            select(Job).where(Job.project_id == project_id, Job.kind == JOB_KIND)
+        ).one()
 
 
 def _outputs(sessions: Sessions, project_id: uuid.UUID) -> tuple[list[MediaAsset], list[Frame]]:

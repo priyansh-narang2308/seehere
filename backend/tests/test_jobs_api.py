@@ -117,9 +117,15 @@ def test_worker_outputs_are_served(
     project = _upload(client, video)
     assert Worker(HANDLERS, settings=settings, sessions=sessions).run_once()
 
-    [job] = _jobs(client, project["id"])
+    job, speech = _jobs(client, project["id"])
     assert (job["status"], job["progress"], job["error"]) == ("succeeded", 1.0, None)
-    assert client.get(f"/api/projects/{project['id']}").json()["status"] == "uploaded"
+    # Preparation queues speech-to-text, so the project is still processing.
+    assert (speech["kind"], speech["label"], speech["status"]) == (
+        "speech.transcribe",
+        "Speech-to-text",
+        "queued",
+    )
+    assert client.get(f"/api/projects/{project['id']}").json()["status"] == "processing"
 
     media = client.get(f"/api/projects/{project['id']}/media?preview=3").json()
     assert media["audio"]["sample_rate"] == 16000 and media["audio"]["channels"] == 1

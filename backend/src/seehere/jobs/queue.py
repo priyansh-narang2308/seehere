@@ -68,6 +68,51 @@ def enqueue(
     return job
 
 
+def enqueue_or_restart(
+    session: Session,
+    *,
+    project_id: uuid.UUID,
+    kind: str,
+    idempotency_key: str,
+    payload: dict[str, Any] | None = None,
+    max_attempts: int = 3,
+) -> None:
+    """Queue a job for fresh input: insert it, or if a finished job with this key exists,
+    reset it to a fresh queued run. A job that is still queued or running is left alone (it
+    reads its input when it runs). Does not commit.
+
+    Used for a stage whose input was just replaced (new audio means a new transcript), so a
+    project keeps one row per stage instead of collecting stale ones.
+    """
+    stmt = insert(Job).values(
+        id=uuid.uuid4(),
+        project_id=project_id,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        payload=payload or {},
+        max_attempts=max_attempts,
+    )
+    session.execute(
+        stmt.on_conflict_do_update(
+            index_elements=[Job.idempotency_key],
+            set_={
+                "status": JobStatus.QUEUED,
+                "payload": stmt.excluded.payload,
+                "attempts": 0,
+                "progress": 0.0,
+                "stage": None,
+                "error": None,
+                "cancel_requested": False,
+                "run_after": func.now(),
+                "finished_at": None,
+                "locked_by": None,
+                "created_at": func.now(),
+            },
+            where=Job.status.not_in(ACTIVE),
+        )
+    )
+
+
 def claim(session: Session, worker_id: str, kinds: list[str]) -> ClaimedJob | None:
     """Atomically take the next runnable job. Concurrent workers never get the same job:
     the row is locked with FOR UPDATE SKIP LOCKED, so a second worker skips it."""

@@ -8,7 +8,8 @@ For a project's source video:
    `frame_max_width`, as JPEGs. Frame n is the picture on screen at t = n / fps (the last
    decoded frame at or before that time), and its file is named by n (`-frame_pts`).
 4. Replace any earlier outputs for this video in one transaction, so a retried or repeated
-   run leaves exactly one set of outputs (the handler is idempotent).
+   run leaves exactly one set of outputs (the handler is idempotent). The same transaction
+   queues speech-to-text (Task 08) for the new audio.
 
 All work happens in a private temp directory; outputs are moved into place only after every
 step succeeded. Corrupt or unsupported input fails permanently with a user-safe message.
@@ -32,6 +33,7 @@ from seehere.jobs.worker import JobContext
 from seehere.media.ffmpeg import FFmpegCancelled, FFmpegError, input_args, run_ffmpeg
 from seehere.media.probe import UploadRejected, inspect_lecture_video, inspect_wav
 from seehere.media.storage import frames_dir, normalized_audio_path
+from seehere.speech.transcribe import queue_transcription
 
 log = logging.getLogger("seehere.media")
 
@@ -191,6 +193,7 @@ def prepare_media(ctx: JobContext, job: ClaimedJob) -> None:
             store.replace_dir(out_frames, frames_rel)
             s.add(audio_row)
             s.add_all(frame_rows)
+            queue_transcription(s, job.project_id)
             s.commit()
         log.info(
             "project %s: %.1f s of 16 kHz audio, %d frames at %s fps",

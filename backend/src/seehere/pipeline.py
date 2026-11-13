@@ -12,14 +12,17 @@ from sqlalchemy.orm import Session
 from seehere.jobs import queue
 from seehere.jobs.worker import Handler
 from seehere.media import normalize
+from seehere.speech import transcribe
 
 HANDLERS: dict[str, Handler] = {
     normalize.JOB_KIND: normalize.prepare_media,
+    transcribe.JOB_KIND: transcribe.transcribe_speech,
 }
 
 # What each job kind is called in the UI.
 JOB_LABELS = {
     normalize.JOB_KIND: "Media preparation",
+    transcribe.JOB_KIND: "Speech-to-text",
 }
 
 

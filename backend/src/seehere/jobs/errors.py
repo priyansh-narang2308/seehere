@@ -16,3 +16,14 @@ class PermanentJobError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
+
+
+class RetryableJobError(Exception):
+    """A failure that may go away on a later attempt (a model download that timed out, a
+    provider that is briefly unavailable). Retried with backoff like an unexpected error, but
+    `message` is shown to users instead of the generic text, so it must be safe to show.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message

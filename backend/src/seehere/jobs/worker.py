@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from seehere.core.config import Settings, get_settings
 from seehere.db.session import get_sessionmaker
 from seehere.jobs import queue
-from seehere.jobs.errors import JobCancelled, PermanentJobError
+from seehere.jobs.errors import JobCancelled, PermanentJobError, RetryableJobError
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.retention import sweep
 from seehere.media.storage import MediaStore
@@ -139,15 +139,20 @@ class Worker:
                     max_s=cfg.job_retry_max_s,
                 )
             log.warning("job %s failed permanently: %s", job.id, exc.message)
-        except Exception:
+        except Exception as exc:
             # Unknown errors are logged in full here but shown to users only generically.
             log.exception("job %s raised", job.id)
+            message = (
+                exc.message
+                if isinstance(exc, RetryableJobError)
+                else "An unexpected error stopped this step."
+            )
             with self.sessions() as s:
                 status = queue.fail(
                     s,
                     job,
                     self.worker_id,
-                    "An unexpected error stopped this step.",
+                    message,
                     retryable=True,
                     base_s=cfg.job_retry_base_s,
                     max_s=cfg.job_retry_max_s,
