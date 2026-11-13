@@ -22,7 +22,7 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 |---|---|---|---|---|
 | 01 | Repo audit, architecture decisions, runnable foundation | P0 | ✅ | Docs created; backend `/api/health` reports real DB/binary status; web `/healthz` + status page; lint/type/tests pass |
 | 02 | Design system and brand foundation | P1 | ✅ | Tokens (colour, type, spacing, radius, shadow), Radix-based primitives (Button, Input, Dialog, Tabs, Badge, Card, Toast), focus rings, reduced-motion, AA contrast verified with axe |
-| 03 | Application shell and navigation | P1 | ⏳ | Home, Upload, Projects, Processing, Results, Methodology routes; skip link; responsive at 375/768/1280; keyboard-only navigation works |
+| 03 | Application shell and navigation | P1 | ✅ | Home, Upload, Projects, Processing, Results, Methodology routes; skip link; responsive at 375/768/1280; keyboard-only navigation works |
 | 04 | Database schema and migrations | P0 | ⏳ | Alembic migration creates project, media_asset, job, transcript_word/segment, frame, slide, ocr_region, visual_unit, reference_link, evidence, description_cue, verification_event, schedule_run, audio_clip, review_decision, export_artifact with FKs and indexes; up/down tested |
 | 05 | Secure upload system | P0 | ⏳ | Streaming upload with size cap, ffprobe-based type check, rights confirmation required, safe filenames, path-traversal tests, progress UI |
 | 06 | Background jobs and orchestration | P0 | ⏳ | Postgres SKIP LOCKED worker; states, progress, retries with backoff, cancellation, idempotency; tests for double-claim and crash recovery |

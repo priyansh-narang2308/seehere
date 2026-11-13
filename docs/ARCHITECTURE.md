@@ -42,7 +42,24 @@ seehere/
 | `GET /api/health/live` | Liveness | `{"status":"ok"}` |
 | `GET /api/health` | Readiness | Checks Postgres (real query), ffmpeg, ffprobe, tesseract (real binaries), AI-provider key presence (not capability). Returns 503 if DB/ffmpeg/ffprobe is down. Never leaks the DB URL |
 | `GET /healthz` (web) | Web liveness | Per-request JSON |
-| `GET /` (web) | Foundation page | Fetches `/api/health` and shows component status in an `aria-live` region |
+| `GET /` (web) | Foundation page | Replaced in Task 03: the API status moved to `/status` |
+
+## Web routes (Task 03)
+All pages share one layout: skip link → sticky header (logo, Projects, Methodology, Upload lecture; a disclosure menu below 640px) → `<main id="main">` → footer (System status, Design system).
+
+| Route | Rendering | Content |
+|---|---|---|
+| `/` | static | Landing: what SeeHere is designed to do, and how many pipeline stages are built |
+| `/upload` | static | States that uploads are not open yet (Task 05 builds them); what you will need |
+| `/projects` | static | Empty list (no project storage yet) |
+| `/projects/[projectId]/processing` | partial prerender | Breadcrumb and project section links (read from params inside Suspense); stage list |
+| `/projects/[projectId]/results` | partial prerender | Breadcrumb and section links; empty results |
+| `/methodology` | static | Problem, pipeline with per-stage build status, verification states, modes, limits |
+| `/status` | static shell, client fetch | Live `GET /api/health` in an `aria-live` region |
+| `/design` | static | Design system reference |
+| not found | static | `app/not-found.tsx`; `src/proxy.ts` returns a real 404 for non-UUID project IDs |
+
+Pipeline build status shown in the UI comes from one file, `web/src/lib/pipeline.ts`. A stage is flipped to `built` only in the commit that implements and tests it.
 
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.

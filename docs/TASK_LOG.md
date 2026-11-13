@@ -76,3 +76,51 @@
 - jsdom cannot compute colour contrast; contrast is covered by token tests and the browser axe run.
 - Not a WCAG conformance claim.
 - The `starlette.testclient` → httpx2 deprecation warning remains (cosmetic).
+
+## TASK 03: Application shell and navigation
+- **Status:** COMPLETE (local). No cloud resources created. Committed in 8 commits (not pushed).
+- **Date:** 14 Nov 2026, 00:02–00:25 IST.
+
+### Implemented
+- **Shared layout:** skip link → sticky header → single `<main id="main" tabIndex=-1>` → footer, in the root layout.
+- **Header navigation:**
+  - Links to Projects and Methodology, plus an "Upload lecture" button. The current section has `aria-current="page"`.
+  - Below 640px, a disclosure menu: a button with `aria-expanded`/`aria-controls` that closes on Esc (returning focus to the button) and on navigation.
+  - The nav reads the pathname inside `Suspense`, as Next 16 Cache Components requires. Its fallback renders the same links with no current page.
+- **Routes:**
+  - `/` landing page
+  - `/upload`, `/projects`
+  - `/projects/[projectId]/processing`, `/projects/[projectId]/results`
+  - `/methodology`, `/status` (live API health, moved from home), `/design`
+  - 404 and error pages
+- **Project routes:**
+  - A shared layout with a breadcrumb and section links.
+  - The ID must be a UUID. `src/proxy.ts` returns a real 404 for malformed IDs, and the layout's `notFound()` stays as a second check.
+  - `params` is read inside `Suspense`, so the pages are partially prerendered.
+- **Single source of truth for build status:** `web/src/lib/pipeline.ts` (15 stages, all `not_built`). Home and Methodology show the count from it.
+- **New components:** `EmptyState`, `PipelineStageList`, `Container`, `PageHeader`.
+- **Honest in-progress pages:** Upload has no file input and says uploads are not open. Projects says storage is not built. Processing and Results say there is no data. Methodology states the system's limits, including that it does not certify WCAG conformance.
+
+### Tests executed and results
+| Check | Result |
+|---|---|
+| `pnpm test` | **53 passed** (+23): active-path matching (7 cases), UUID validation incl. path-traversal strings, aria-current, unknown-path fallback, mobile menu (open, Esc closes and restores focus, closes on route change), one h1 and 0 axe violations on all 8 pages, honesty checks (no file input on Upload, real built-stage count, no WCAG certification claim) |
+| `make check` (ruff, mypy strict, pytest 5; eslint, tsc, vitest) | pass |
+| `pnpm build` | pass. Static: `/`, `/upload`, `/projects`, `/methodology`, `/status`, `/design`. Partial prerender: project routes. Proxy registered |
+| HTTP status, all routes | 200 for valid routes; **404** for `/nope`, `/projects/not-a-uuid/processing`, `/projects/..%2F..%2Fetc/results`, and a UUID with a suffix |
+| Browser axe-core, 10 routes × 375/768/1280 px | **0 violations on all 30**; exactly 1 h1 and 1 `<main>` each; **no horizontal overflow** at any width |
+| Browser keyboard, 375 px | Tab 1 = skip link; Tab 3 = menu button; Enter opens the menu (current page highlighted); Tab enters the menu; Esc closes it and focus returns to the button |
+| Browser keyboard, 1280 px | Tab order: skip → logo → Projects → Methodology → Upload lecture. Skip link focuses `<main>`; the next Tab reaches the breadcrumb. On a project Results page, "Projects" (header) and "Results" (section links) are marked current |
+| `/status` live | Correctly showed the database **down** when Docker had stopped; after restarting Docker it showed degraded (DB ok, AI keys untested) |
+
+### Fixes made during the task
+- An invalid project ID returned a 200 status (notFound after the streamed shell). Fixed with the proxy.
+- The 404 page had a generic tab title. Added "Page not found".
+- Removed the design page's own `<main>` and its back link (the layout now owns them).
+- Removed the temporary axe file from `web/public` after the browser audit.
+
+### Known limitations
+- No project can be reached by clicking yet, because there is no project storage (Task 04) or upload (Task 05). The project routes are reachable by URL only.
+- The status code for a well-formed UUID of a project that doesn't exist will need the same proxy-or-API approach once projects exist (Task 04/05).
+- Screen-reader testing (VoiceOver/NVDA) is planned for Task 32. This task used axe and keyboard only.
+- The pipeline stage list will change as later tasks land. Only those tasks may flip a stage to `built`.
