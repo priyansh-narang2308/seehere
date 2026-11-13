@@ -39,6 +39,23 @@ class Settings(BaseSettings):
     ffprobe_bin: str = "ffprobe"
     tesseract_bin: str = "tesseract"
     ffprobe_timeout_s: float = 30.0
+    # Upper bound for one ffmpeg run (audio extraction or frame sampling).
+    ffmpeg_timeout_s: float = 900.0
+
+    # --- background jobs (Task 06) ---
+    worker_poll_interval_s: float = 1.0
+    job_heartbeat_interval_s: float = 5.0
+    # A running job whose heartbeat is older than this is treated as abandoned and re-queued.
+    job_stale_after_s: float = 60.0
+    job_retry_base_s: float = 10.0
+    job_retry_max_s: float = 300.0
+    retention_sweep_interval_s: float = 60.0
+    # Abandoned partial uploads and work directories in media/tmp older than this are removed.
+    temp_max_age_hours: float = 6.0
+
+    # --- media preparation (Task 07) ---
+    frame_sample_fps: float = 1.0
+    frame_max_width: int = 1280
 
     # --- Vultr Serverless Inference (OpenAI-compatible) ---
     vultr_inference_base_url: str = "https://api.vultrinference.com/v1"
