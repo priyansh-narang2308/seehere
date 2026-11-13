@@ -35,6 +35,38 @@ export type UploadConfig = {
   retention_hours: number;
 };
 
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export type Job = {
+  id: string;
+  kind: string;
+  label: string;
+  status: JobStatus;
+  stage: string | null;
+  progress: number;
+  attempts: number;
+  max_attempts: number;
+  cancel_requested: boolean;
+  error: string | null;
+  created_at: string;
+  run_after: string;
+  finished_at: string | null;
+};
+
+/** `now` is the server's clock, for timing comparisons that do not trust the browser's. */
+export type JobList = { now: string; jobs: Job[] };
+
+export type PreparedMedia = {
+  audio: { duration_s: number | null; sample_rate: number; channels: number; size_bytes: number } | null;
+  frames: {
+    count: number;
+    fps: number | null;
+    first_s: number | null;
+    last_s: number | null;
+    preview: { id: string; t_s: number }[];
+  };
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -65,6 +97,21 @@ export async function getJson<T>(path: string, init?: RequestInit, base = API_BA
   }
   if (!res.ok) throw await toApiError(res);
   return (await res.json()) as T;
+}
+
+/**
+ * Cancel or retry a job. The custom header makes the browser send a CORS preflight, which only
+ * this app's origin passes, so other sites cannot trigger these actions.
+ */
+export function jobAction(jobId: string, action: "cancel" | "retry"): Promise<Job> {
+  return getJson<Job>(`/api/jobs/${jobId}/${action}`, {
+    method: "POST",
+    headers: { "X-SeeHere-Request": "1" },
+  });
+}
+
+export function frameImageUrl(frameId: string): string {
+  return `${API_BASE}/api/frames/${frameId}/image`;
 }
 
 export type UploadPhase = "uploading" | "checking";
