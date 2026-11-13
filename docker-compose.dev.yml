@@ -1,0 +1,19 @@
+# Local development services only. Production compose lives in deploy/ (Task 34).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: seehere
+      POSTGRES_PASSWORD: seehere
+      POSTGRES_DB: seehere
+    ports:
+      - "127.0.0.1:5433:5432"   # 5433 avoids clashing with a host Postgres on 5432
+    volumes:
+      - seehere_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seehere -d seehere"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  seehere_pg: {}
