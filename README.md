@@ -32,6 +32,7 @@
 > |---|---|
 > | [Live app](https://65-20-87-43.sslip.io) | Upload a lecture (or open the demo project) and watch the 14-stage pipeline run |
 > | [Demo lecture results](https://65-20-87-43.sslip.io/projects/bfaa58c7-1351-4483-bdfa-845e23ee6a98/results) | The described video, transcript, evidence ledger and the 9 export files |
+> | [Demo video (4:16)](demo-video/SeeHere_HackGlobal_Demo.mp4) | The full walkthrough recorded on the live Vultr deployment, with narration and captions ([script](demo-video/narration-script.md) · [storyboard](demo-video/storyboard.md)) |
 > | [Live status](https://65-20-87-43.sslip.io/status) | Real-time health of the API, database and media tools, measured stage timings, and every Vultr Serverless Inference call with tokens and latency |
 > | [`/api/metrics`](https://65-20-87-43.sslip.io/api/metrics) · [`/api/health`](https://65-20-87-43.sslip.io/api/health) | The same numbers as raw JSON |
 
