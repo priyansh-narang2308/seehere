@@ -34,7 +34,7 @@ export default function Home() {
     <>
       <section className="border-b border-border">
         <Container className="py-16 sm:py-24">
-          <Badge tone="warning">Development build</Badge>
+          <Badge tone="warning">Research prototype · HackGlobal 2026</Badge>
           <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-balance text-ink sm:text-5xl">
             Hear what the lecture shows, not just what it says.
           </h1>
@@ -69,9 +69,11 @@ export default function Home() {
           ))}
         </ul>
         <p className="mt-8 rounded-lg border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning">
-          This build is in progress: {built} of {pipelineStages.length} pipeline stages are built.{" "}
+          Research prototype: all {built} of {pipelineStages.length} pipeline stages run, and every description is
+          checked against the on-screen text. That is not full fact-checking or a WCAG certification, so an
+          instructor should review descriptions before publishing.{" "}
           <Link href="/methodology" className="font-medium underline underline-offset-4">
-            See what works today
+            How it works and its limits
           </Link>
           .
         </p>

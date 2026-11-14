@@ -8,7 +8,7 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <span>SeeHere · HackGlobal 2026</span>
-          <Badge tone="warning">Development build</Badge>
+          <Badge tone="warning">Research prototype</Badge>
         </div>
         <nav aria-label="Footer">
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
