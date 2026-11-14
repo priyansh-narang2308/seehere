@@ -667,3 +667,70 @@ Both solvers voice one description because the first slide has no pause long eno
 - The benchmark has one synthetic, developer-annotated item.
 - "Unsupported numbers" is a proxy for invented values, not a hallucination measure; verification is evidence matching, not complete fact-checking.
 - Vultr TTS and vision remain DOCUMENTED: the `VULTR_INFERENCE_API_KEY` in `.env` is empty, so the opt-in live tests cannot run.
+
+## Tasks 31–33: End-to-end and failure testing, security/privacy/a11y audit, performance and cost (2026-11-14) ✅ / 🟡 / ✅
+
+### Implemented
+- **Task 31, end-to-end and failure testing:**
+  - `test_end_to_end.py` uploads a real narrated lecture over HTTP. It is 20 s of macOS `say` speech over two slides. Every pipeline stage then runs for real: Whisper, Tesseract, CP-SAT, Piper and ffmpeg. It checks the transcript, cues, schedule, all 9 exports, the report, range requests and (Task 33) the per-stage measurements.
+  - **Provider failures are classified** (`providers/errors.py`):
+    - A rejected key (401/403) fails the job once, with a message that says which key to check. It is not retried, nothing after it is queued, and the earlier schedule stays. After the fix, a retry completes the project.
+    - An outage (503, 429 or a network error) is retried with backoff.
+  - **Other failure cases:**
+    - An export interrupted mid-render keeps the previous files and leaves no temp files.
+    - A table of malformed requests (missing header, bad bodies, unknown IDs) is refused and changes nothing.
+  - **Project status** now becomes `ready` once the export succeeds, and goes back to `processing` when new work is queued.
+- **Task 32, security, privacy and accessibility audit:**
+  - Endpoint review: uploads now require the app request header, like every other write. A test walks every write route in the OpenAPI schema.
+  - Per-client rate limits: uploads 20/hour, writes 60/minute, reads 1200/minute. Health checks are exempt. Over the limit, the API returns 429 with `Retry-After`. The proxy address is trusted only when configured.
+  - Security headers on every API response and on the web app; no `X-Powered-By`.
+  - A test checks that no secret files or key patterns are tracked in git.
+  - Privacy check: logs contain IDs and HTTP codes only. The retention job removes each expired project's whole directory, including exports and reports.
+  - Accessibility: axe runs on every page and component test. A keyboard pass in the browser covered the Processing page (review controls) and the Results page:
+    - one h1 per page;
+    - every control has an accessible name;
+    - Tab order follows the layout;
+    - the focus ring is visible (2px);
+    - live regions announce review and status changes.
+- **Task 33, performance, monitoring and cost:**
+  - The worker records each attempt's wall time, CPU, subprocess CPU and peak memory in `job.metrics` (migration `c3d8a1f5e702`).
+  - The Vultr adapters meter every call: HTTP status, latency, tokens, characters, audio seconds. They never record content.
+  - `GET /api/metrics` and `GET /api/projects/{id}/metrics`. The Status page shows the per-stage summary and hosted-model calls.
+  - Cost is estimated only from unit prices the operator sets (unset by default). Failed calls are counted but not billed.
+  - `python -m seehere.bench.perf` builds a narrated lecture and measures a full run through the live API and worker.
+
+### Measured runs (OBSERVED, Apple Silicon laptop, local tools only, Whisper `small.en` int8)
+| Lecture | Upload → ready | Transcribe | Voice | Export | Processing per lecture second | Worker peak memory |
+|---|---|---|---|---|---|---|
+| 2 min (8 slides) | 33.6 s | 18.5 s | 8.6 s | 2.2 s | 0.26 s | 1.7 GB |
+| 10 min (40 slides) | 58.7 s | 38.8 s | 9.5 s | 6.4 s | 0.10 s | 1.7 GB |
+| 30 min (120 slides) | 156.9 s | 114.2 s | 11.2 s | 23.5 s | 0.09 s | 1.6 GB |
+
+- Transcription is 59–73% of processing time and grows with length. Export grows with length (re-encoding the extended MP4). The other stages take under 4 s together.
+- The generated lectures cycle through the same 8 slides, so OCR and voicing stay small here. A real deck with 120 distinct slides would take longer in those stages. These runs measure length scaling, not slide variety.
+- Memory is dominated by the Whisper model (about 1.6–1.7 GB). The deploy VM (Task 34) needs at least 4 GB of RAM.
+- API spend: none. No run called a hosted model. Full results: `bench/results/perf-lecture-*.md` / `.json`.
+
+### Limits re-tuned
+- Maximum lecture length raised from 10 to **30 minutes** (`MAX_VIDEO_DURATION_S=1800`). The measured 30-minute run finished in 157 s, well inside the 60 s heartbeat and 900 s ffmpeg limits.
+- Kept as they were, because the runs gave no reason to change them:
+  - upload size: 500 MB (the 30-minute test file is 7.8 MB);
+  - job timeouts;
+  - rate limits (the processing page polls about once a second, far below 1200 reads a minute).
+- The Vultr speech-to-text adapter (not used by the pipeline, which runs Whisper locally) has a 25 MB request limit. That is about 13.6 minutes of the prepared 16 kHz mono audio, so wiring it in would need chunking first.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_end_to_end.py` (13) | Real upload to 9 exports, measured; rejected key; outage with backoff; error mapping; interrupted export; malformed requests; ready status |
+| `test_security.py` (8) | Header on every write; CORS preflight; separate limit buckets; sliding window; proxy trust; headers on every response; no tracked secrets |
+| `test_metrics.py` (7) | Time/CPU/subprocess measurement; Vultr calls metered without content; one entry per attempt (success and failure); spend bills only successes at set prices; percentiles; API |
+| Web | Pipeline metrics table (pipeline order, no invented cost, axe clean); upload sends the app header |
+| Backend / Web | **641 passed, 3 skipped** / **128 passed**; `make check` and `next build` pass |
+| Live | Approving a cue in the browser re-ran the chain to 9 files; the video still plays with the new headers; the Status page shows the measured stages |
+
+### Known limitations
+- The Vultr key in `.env` is now present, but the opt-in live tests got **HTTP 401** from vision, text-to-speech and speech-to-text. The key is likely not a Serverless Inference key, or the subscription is not active. Vultr TTS and vision stay DOCUMENTED, not OBSERVED.
+- No screen-reader pass (VoiceOver/NVDA) and no testing with screen-reader users: the audit used axe, the accessibility tree and a keyboard pass, so Task 32 stays 🟡. This is not a WCAG conformance claim.
+- Rate limits are in memory and per API process. Several API processes would each count separately.
+- Peak memory is the worker's high-water mark, not each job's own peak.

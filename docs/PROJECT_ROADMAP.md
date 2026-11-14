@@ -50,9 +50,9 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 28 | Uncovered-content and verification report | P1 | ✅ | Described / skipped / uncovered / review / corroborated / uncertain / timing results |
 | 29 | Microsoft baseline integration | P1 | ✅ | microsoft/ai-audio-descriptions licence checked, commit pinned, reproducible run script, attribution |
 | 30 | Benchmark and evaluation | P1 | 🟡 | Annotation format; runner; metrics for MS / greedy / CP-SAT / reviewed; results labelled OBSERVED/SIMULATED |
-| 31 | End-to-end and failure testing | P0 | ⏳ | Full flow + invalid/malformed/provider-failure/interrupted-job cases |
-| 32 | Security, privacy and a11y audit | P1 | ⏳ | Endpoint review, rate limits, retention job, axe + manual SR pass, fixes |
-| 33 | Performance, monitoring, cost | P2 | ⏳ | Measured stage timings, resource use, API spend; limits re-tuned |
+| 31 | End-to-end and failure testing | P0 | ✅ | Full flow + invalid/malformed/provider-failure/interrupted-job cases |
+| 32 | Security, privacy and a11y audit | P1 | 🟡 | Endpoint review, rate limits, retention job, axe + manual SR pass, fixes. Done except the screen-reader pass: keyboard and accessibility-tree checks only |
+| 33 | Performance, monitoring, cost | P2 | ✅ | Measured stage timings, resource use, API spend; limits re-tuned |
 | 34 | Production packaging and Vultr deploy | P0 | ⏳ | Dockerfiles, prod Compose, Caddy HTTPS, health checks, volumes, scripts, rollback; **paid VM only after explicit approval**; public URL verified |
 | 35 | Release, competition package, demo | P0 | ⏳ | README, diagrams, screenshots, benchmark, Vultr docs, demo video on Vultr, Q&A, limitations, reach evidence, cost report, checklist |
 
