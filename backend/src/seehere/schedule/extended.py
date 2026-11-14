@@ -132,7 +132,8 @@ def plan_extended(
             skipped.append(
                 (
                     cue.id,
-                    f"needs a {pause:.1f} s pause; the pause budget ({budget:.1f} s) is used up",
+                    f"needs a {pause:.1f} s pause; only {budget - used:.1f} s of the "
+                    f"{budget:.1f} s pause budget is left",
                 )
             )
             continue

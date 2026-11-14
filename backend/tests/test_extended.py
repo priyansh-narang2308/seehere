@@ -56,9 +56,11 @@ def test_pause_uses_the_silence_first_and_states_why() -> None:
 
 def test_budget_is_enforced_by_priority() -> None:
     big, small = _cue(0.9, 0.0, 9.0, short=0.9), _cue(0.4, 0.0, 9.0, short=0.9)
-    plan = _plan([small, big], budget_pct=10.0)  # 1.0 s budget
+    plan = _plan([small, big], budget_pct=10.0)  # 1.0 s budget; big uses 0.3 s of silence
     assert [p.cue_id for p in plan.pauses] == [big.id]
-    assert plan.skipped == [(small.id, "needs a 0.9 s pause; the pause budget (1.0 s) is used up")]
+    assert plan.skipped == [
+        (small.id, "needs a 0.9 s pause; only 0.4 s of the 1.0 s pause budget is left")
+    ]
 
 
 def test_standard_placements_are_kept_and_never_overlapped() -> None:
