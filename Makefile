@@ -1,4 +1,4 @@
-.PHONY: db-up db-down migrate api worker web test lint typecheck check
+.PHONY: db-up db-down migrate api worker web tts-voice test lint typecheck check
 
 db-up:        ## start local Postgres (Docker)
 	docker compose -f docker-compose.dev.yml up -d --wait db
@@ -12,6 +12,8 @@ worker:       ## run the background job worker (Ctrl-C stops after the current j
 	cd backend && uv run python -m seehere.jobs.worker
 web:          ## run Next.js on :3000
 	cd web && pnpm dev
+tts-voice:    ## download the default Piper voice (LJ Speech, public domain) to ~/.cache/seehere/piper
+	cd backend && uv run python -m piper.download_voices en_US-ljspeech-medium --download-dir $(HOME)/.cache/seehere/piper
 test:
 	cd backend && uv run pytest -q
 	cd web && pnpm test

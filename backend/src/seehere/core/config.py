@@ -115,6 +115,14 @@ class Settings(BaseSettings):
     extended_pause_budget_pct: float = 8.0
     solver_time_limit_s: float = 2.0
 
+    # --- text-to-speech (Task 22) ---
+    # "piper": local voice (default, free). "vultr": Serverless Inference (costs credit).
+    tts_provider: Literal["piper", "vultr"] = "piper"
+    piper_voice_dir: Path = Path("~/.cache/seehere/piper")
+    piper_voice: str = "en_US-ljspeech-medium"
+    vultr_tts_voice: str = "serena"
+    vultr_tts_timeout_s: float = 60.0
+
 
 @lru_cache
 def get_settings() -> Settings:

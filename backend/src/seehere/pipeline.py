@@ -16,7 +16,7 @@ from seehere.media import normalize, ocr, scenes
 from seehere.references import resolve
 from seehere.schedule import plan
 from seehere.slides import ingest
-from seehere.speech import transcribe
+from seehere.speech import synthesize, transcribe
 from seehere.vision import coverage, units
 
 HANDLERS: dict[str, Handler] = {
@@ -31,6 +31,7 @@ HANDLERS: dict[str, Handler] = {
     generate.JOB_KIND: generate.generate_descriptions,
     verify.JOB_KIND: verify.verify_claims,
     plan.JOB_KIND: plan.plan_schedule,
+    synthesize.JOB_KIND: synthesize.synthesize_speech,
 }
 
 # What each job kind is called in the UI.
@@ -46,6 +47,7 @@ JOB_LABELS = {
     generate.JOB_KIND: "Descriptions",
     verify.JOB_KIND: "Claim verification",
     plan.JOB_KIND: "Scheduling",
+    synthesize.JOB_KIND: "Speech synthesis",
 }
 
 
