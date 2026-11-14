@@ -20,6 +20,7 @@ import {
   type OcrResult,
   type Transcript,
 } from "@/lib/api";
+import { DeckSection } from "./deck-section";
 import { OcrView } from "./ocr-view";
 import { TranscriptView } from "./transcript-view";
 
@@ -44,6 +45,7 @@ const STAGES: Record<string, string> = {
   transcribe: "Recognizing speech",
   compare: "Comparing frames",
   read: "Reading on-screen text",
+  align: "Matching pages to the video",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -146,6 +148,9 @@ export function JobPanel({ projectId }: { projectId: string }) {
     }
   }
 
+  const deckJob = list?.jobs.find((j) => j.kind === "deck.ingest");
+  const deckVersion = deckJob ? `${deckJob.status}:${deckJob.finished_at}` : "";
+
   if (!list) {
     return error ? (
       <p role="alert" className="rounded-lg border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
@@ -183,6 +188,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
       )}
       {media && <PreparedOutputs media={media} />}
       {ocr && <OcrView ocr={ocr} />}
+      <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}
     </section>
   );

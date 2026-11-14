@@ -47,7 +47,7 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "slides",
     name: "Slide deck matching",
     summary: "If you add the PDF or PPTX, each slide's text is matched to the moment it appears.",
-    status: "not_built",
+    status: "built",
     optional: true,
   },
   {

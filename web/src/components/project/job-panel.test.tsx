@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Job, JobList, PreparedMedia, Transcript } from "@/lib/api";
+import type { Deck, Job, JobList, PreparedMedia, Transcript } from "@/lib/api";
 import { JobPanel } from "./job-panel";
 
 const refresh = vi.fn();
@@ -55,6 +55,8 @@ const transcript: Transcript = {
   ],
 };
 
+const noDeck: Deck = { available: false, filename: null, kind: null, ingested: false, pages: [] };
+
 type Route = (url: string, init?: RequestInit) => unknown;
 
 /** fetch double that answers by URL; each call to `jobs` can return the next queued state. */
@@ -69,6 +71,7 @@ function stubApi(jobs: Job[][], extra: Route = () => undefined) {
     }
     if (url.endsWith(`/api/projects/${PROJECT}/media`)) return Response.json(media);
     if (url.endsWith(`/api/projects/${PROJECT}/transcript`)) return Response.json(transcript);
+    if (url.endsWith(`/api/projects/${PROJECT}/deck`)) return Response.json(noDeck);
     throw new Error(`unexpected ${url}`);
   });
   vi.stubGlobal("fetch", fetch);
@@ -178,7 +181,7 @@ describe("JobPanel", () => {
     stubApi([[job({ status: "running", cancel_requested: true, attempts: 1, stage: "frames", progress: 0.5 })]]);
     render(<JobPanel projectId={PROJECT} />);
     expect(await screen.findByText("Stopping…")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: /cancel|try again|run again/i })).toBeNull();
     await waitFor(() => expect(refresh).not.toHaveBeenCalled());
   });
 
@@ -234,5 +237,47 @@ describe("JobPanel", () => {
     expect(list.getByText("Rev 12.5%")).toHaveTextContent("Rev 12.5%(low confidence)");
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("uploads a deck with the request header and lists matched pages", async () => {
+    const posts: string[] = [];
+    const deck: Deck = {
+      available: true,
+      filename: "lecture.pptx",
+      kind: "pptx",
+      ingested: true,
+      pages: [
+        { page: 1, text: "Quarterly Revenue\nRevenue rose", frame_id: "k0", t_s: 0, score: 0.95 },
+        { page: 2, text: "Appendix", frame_id: null, t_s: null, score: 0.1 },
+      ],
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW })]], (url, init) => {
+      if (url.endsWith("/deck") && init?.method === "POST") {
+        const h = new Headers(init.headers);
+        posts.push(`${h.get("X-SeeHere-Request")} ${h.get("X-SeeHere-Filename")}`);
+        return deck;
+      }
+    });
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    await userEvent.upload(await screen.findByLabelText("Slide deck file"), new File(["x"], "lecture.pptx"));
+    expect(posts).toEqual(["1 lecture.pptx"]);
+    expect(await screen.findByText(/2 pages, 1 matched to the video\./)).toBeInTheDocument();
+    const rows = within(screen.getByRole("list", { name: "Deck pages" })).getAllByRole("listitem");
+    expect(rows.map((r) => r.textContent)).toEqual(["Page 1at 0:00Quarterly Revenue", "Page 2Not matchedAppendix"]);
+    expect(screen.getByRole("button", { name: /replace deck/i })).toBeInTheDocument();
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("shows why a deck was refused", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/jobs")) return Response.json({ now: NOW, jobs: [] });
+      if (url.endsWith("/deck") && init?.method === "POST")
+        return Response.json({ error: { code: "unsupported_deck", message: "This file is not a supported slide deck." } }, { status: 415 });
+      return Response.json(noDeck);
+    }));
+    render(<JobPanel projectId={PROJECT} />);
+    await userEvent.upload(await screen.findByLabelText("Slide deck file"), new File(["x"], "notes.pptx"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("This file is not a supported slide deck.");
   });
 });

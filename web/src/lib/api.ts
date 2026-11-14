@@ -134,6 +134,23 @@ export function jobAction(jobId: string, action: "cancel" | "retry"): Promise<Jo
   });
 }
 
+/** The optional slide deck and which keyframe each page was matched to. */
+export type Deck = {
+  available: boolean;
+  filename: string | null;
+  kind: "pdf" | "pptx" | null;
+  ingested: boolean;
+  pages: { page: number; text: string; frame_id: string | null; t_s: number | null; score: number | null }[];
+};
+
+export function uploadDeck(projectId: string, file: File): Promise<Deck> {
+  return getJson<Deck>(`/api/projects/${projectId}/deck`, {
+    method: "POST",
+    headers: { "X-SeeHere-Request": "1", "X-SeeHere-Filename": encodeURIComponent(file.name) },
+    body: file,
+  });
+}
+
 export function frameImageUrl(frameId: string): string {
   return `${API_BASE}/api/frames/${frameId}/image`;
 }
