@@ -266,7 +266,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
       {ocr && <OcrView ocr={ocr} />}
       {visuals && <VisualsView visuals={visuals} />}
       {described && <ReferencesView references={described.references.references} />}
-      {described && <CuesView cues={described.cues.cues} />}
+      {described && <CuesView cues={described.cues.cues} onChanged={refresh} />}
       {schedule && <ScheduleView standard={schedule.standard} extended={schedule.extended} durationS={media?.audio?.duration_s ?? null} />}
       <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}

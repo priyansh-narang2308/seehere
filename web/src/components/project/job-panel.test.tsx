@@ -308,6 +308,7 @@ describe("JobPanel", () => {
         { claim: "41.7%", check: "number_match", result: "pass", resulting_state: "verified_text_match", detail: { source: "ocr", ocr_confidence: 0.93 } },
         { claim: "2023", check: "number_match", result: "fail", resulting_state: "needs_review", detail: { reason: "this value does not appear on screen or on the deck page" } },
       ],
+      decisions: [],
     };
     stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), written]], (url) =>
       url.endsWith("/cues") ? { available: true, cues: [cue] } : url.endsWith("/references") ? references : url.endsWith("/c1/evidence") ? ledger : undefined,

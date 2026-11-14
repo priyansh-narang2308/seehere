@@ -157,7 +157,16 @@ export type CueLedger = {
     frame: { id: string; t_s: number; image_url: string } | null;
     ocr_region: { text: string; confidence: number; box: Box } | null;
     slide: { page: number; text: string; score: number | null } | null;
-    visual_unit: { kind: VisualKind; label: string; box: Box | null; t_start_s: number; t_end_s: number; coverage: number | null } | null;
+    visual_unit: {
+      kind: VisualKind;
+      label: string;
+      box: Box | null;
+      t_start_s: number;
+      t_end_s: number;
+      coverage: number | null;
+      said?: string[];
+      unsaid?: string[];
+    } | null;
     transcript: { start_s: number; end_s: number; text: string } | null;
   }[];
   checks: {
@@ -167,7 +176,31 @@ export type CueLedger = {
     resulting_state: VerificationState;
     detail: { source?: string; reason?: string; ocr_confidence?: number };
   }[];
+  /** Instructor review history (Task 26), oldest first. */
+  decisions: ReviewDecision[];
 };
+
+export type ReviewAction = "approve" | "reject" | "edit" | "regenerate";
+
+export type ReviewDecision = {
+  action: ReviewAction;
+  previous_text: string | null;
+  new_text: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+/** Approve, reject, edit or regenerate a description. Returns the updated ledger. */
+export function reviewCue(
+  cueId: string,
+  input: { action: ReviewAction; text?: string; note?: string },
+): Promise<CueLedger> {
+  return getJson<CueLedger>(`/api/cues/${cueId}/review`, {
+    method: "POST",
+    headers: { "X-SeeHere-Request": "1", "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
 
 /** The latest speech-safe schedule (Tasks 18-19). */
 export type Schedule = {
