@@ -31,6 +31,7 @@ from seehere.db.models import (
     TranscriptWord,
     VisualUnit,
 )
+from seehere.describe.carryover import remember_reviews, restore_reviews
 from seehere.describe.verify import queue_verification
 from seehere.jobs import queue
 from seehere.jobs.queue import ClaimedJob
@@ -172,6 +173,7 @@ def generate_descriptions(ctx: JobContext, job: ClaimedJob) -> None:
             )
         ]
 
+        kept = remember_reviews(s, pid)
         s.execute(delete(DescriptionCue).where(DescriptionCue.project_id == pid))
         described: set[tuple[uuid.UUID, str]] = set()
         cues = []
@@ -199,7 +201,15 @@ def generate_descriptions(ctx: JobContext, job: ClaimedJob) -> None:
             cues.append(cue)
         ctx.check_cancelled()
         s.add_all(cues)
+        s.flush()
+        restored = restore_reviews(s, cues, {u.id: u for u in units}, kept)
         queue_verification(s, pid)
         s.commit()
-    log.info("project %s: %d description cues from %d units", pid, len(cues), len(units))
+    log.info(
+        "project %s: %d description cues from %d units, %d reviews kept",
+        pid,
+        len(cues),
+        len(units),
+        restored,
+    )
     ctx.progress("write", 1.0)

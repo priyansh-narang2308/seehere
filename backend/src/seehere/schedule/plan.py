@@ -3,7 +3,8 @@ schedules of the verified cues on identical inputs (ADR-007); the extended plan 
 better of the two; independent validation of each; one stored `schedule_run` per result.
 
 Cues still marked needs_review are held back: nothing unverified is voiced until a person
-approves it (Task 26). A schedule that fails validation is stored as failed, never used.
+approves it (Task 26). Rejected cues are never scheduled. A schedule that fails validation
+is stored as failed, never used.
 """
 
 from __future__ import annotations
@@ -50,6 +51,14 @@ log = logging.getLogger("seehere.schedule")
 
 JOB_KIND = "schedule.plan"
 NO_UNIT_SPAN_S = 10.0  # a cue without a visual unit may play this long after its anchor
+
+
+def _held(cue: DescriptionCue) -> bool:
+    """Unsupported claims wait for a person: voiced only once an instructor approves them."""
+    return (
+        cue.verification_state is VerificationState.NEEDS_REVIEW
+        and cue.review_status is not ReviewStatus.APPROVED
+    )
 
 
 def queue_schedule(session: Session, project_id: uuid.UUID) -> None:
@@ -127,7 +136,7 @@ def build_schedules(
             return clip.duration_s
         return estimate_duration_s(text, cfg.description_words_per_s)
 
-    held = [c for c, _, _ in rows if c.verification_state is VerificationState.NEEDS_REVIEW]
+    held = [c for c, _, _ in rows if _held(c)]
     inputs = [
         CueInput(
             id=c.id,
@@ -146,7 +155,7 @@ def build_schedules(
             },
         )
         for c, unit_end, _ in rows
-        if c.verification_state is not VerificationState.NEEDS_REVIEW
+        if not _held(c)
     ]
 
     labels = {c.id: (label or "This visual") for c, _, label in rows}

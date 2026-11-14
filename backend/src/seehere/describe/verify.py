@@ -237,6 +237,27 @@ def queue_verification(session: Session, project_id: uuid.UUID) -> None:
     )
 
 
+def verify_cue(s: Session, cue: DescriptionCue) -> VerificationState:
+    """Check every claim in a cue's wordings against its own evidence, replacing its earlier
+    checks. Sets and returns the cue's state. Does not commit."""
+    s.execute(delete(VerificationEvent).where(VerificationEvent.cue_id == cue.id))
+    texts = [t for t in (cue.text_short, cue.text_medium, cue.text_long) if t]
+    state, checks = verify_texts(texts, _sources(s, cue))
+    cue.verification_state = state
+    s.add_all(
+        VerificationEvent(
+            cue_id=cue.id,
+            claim=c.claim,
+            check_name=c.name,
+            result=c.result,
+            resulting_state=c.state,
+            detail=c.detail,
+        )
+        for c in checks
+    )
+    return state
+
+
 def verify_claims(ctx: JobContext, job: ClaimedJob) -> None:
     with ctx.session() as s:
         cues = list(
@@ -246,27 +267,10 @@ def verify_claims(ctx: JobContext, job: ClaimedJob) -> None:
                 .options(selectinload(DescriptionCue.evidence))
             )
         )
-        s.execute(
-            delete(VerificationEvent).where(VerificationEvent.cue_id.in_([c.id for c in cues]))
-        )
         counts: dict[VerificationState, int] = dict.fromkeys(VerificationState, 0)
         for n, cue in enumerate(cues):
             ctx.progress("verify", n / max(1, len(cues)))
-            texts = [t for t in (cue.text_short, cue.text_medium, cue.text_long) if t]
-            state, checks = verify_texts(texts, _sources(s, cue))
-            cue.verification_state = state
-            counts[state] += 1
-            s.add_all(
-                VerificationEvent(
-                    cue_id=cue.id,
-                    claim=c.claim,
-                    check_name=c.name,
-                    result=c.result,
-                    resulting_state=c.state,
-                    detail=c.detail,
-                )
-                for c in checks
-            )
+            counts[verify_cue(s, cue)] += 1
         ctx.check_cancelled()
         queue_schedule(s, job.project_id)
         s.commit()
