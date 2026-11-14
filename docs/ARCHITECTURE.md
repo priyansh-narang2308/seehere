@@ -113,6 +113,10 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source â
 - Provider: local faster-whisper (`small.en`, int8, CPU) with word timestamps, the only TESTED STT (ADR-006). Vultr Whisper is an optional, untested text-only adapter.
 - Output: `transcript_segment` and `transcript_word` (seconds of the source, ordered, inside the audio), linked to the normalized audio asset, so they are deleted when it is replaced. Served by `GET /api/projects/{id}/transcript`.
 
+## Scene and slide changes (Task 09)
+- Job `scenes.detect` after `media.prepare`. Thumbnails of the sampled frames are compared with the last keyframe; a keyframe is taken once the picture has changed and settled. Revisited slides reuse their earlier `scene_index` (dedupe).
+- Output on `frame`: `is_keyframe`, `scene_index`, `phash` (dHash). Served in `GET /api/projects/{id}/media` as `scenes`.
+
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.
 2. **STT:** faster-whisper words with start/end/confidence, then sentences.

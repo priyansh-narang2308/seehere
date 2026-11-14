@@ -356,3 +356,27 @@
 - Whisper can mis-hear technical terms and occasionally invent text in music or noise; VAD reduces but does not remove this. The UI says machine transcription can contain errors.
 - The first run downloads the model (about 480 MB) from Hugging Face.
 
+## Task 09: Scene and slide change detection (2026-11-14) ✅
+
+### Implemented
+- **`media/scenes.py`**, job `scenes.detect`, queued with speech-to-text after media preparation (one row per project).
+  - Each sampled frame → 64×36 grayscale thumbnail (Pillow, JPEG draft decode).
+  - A frame is a keyframe when ≥ `scene_change_fraction` (2%) of thumbnail pixels differ by > `scene_pixel_delta` (24/255) from the **last keyframe** (catches slow drift) **and** the next frame is nearly the same (a transition yields one keyframe on the settled slide).
+  - **Dedupe:** a settled picture matching an earlier scene reuses its `scene_index` and is not a new keyframe.
+  - Every frame gets `scene_index` and a 64-bit dHash in `phash`. Re-runs rewrite all three fields (idempotent).
+- **API:** `GET /api/projects/{id}/media` now has `scenes: {keyframes, revisits}` (null until detection has run).
+- **Web:** keyframe grid ("Keyframe at 0:18"), scene and revisit count, stage 04 marked built (4 of 15).
+
+### Tests
+| Check | Result |
+|---|---|
+| Demo clip (`test_scenes.py`) | 34 s synthetic lecture with noise + H.264: a cut, a bullet build (~3% of the picture), a 2 s crossfade, a revisited slide. **Keyframes exactly 0, 6, 12, 18, 28 s; revisit at 24 s deduplicated; precision 1.0 and recall 1.0**; every frame in the right scene; the half-faded frame stays with the old slide |
+| Unit | Noise alone gives no change; gradual drift caught against the last keyframe; mid-transition frame skipped; dHash; re-run identical |
+| Backend / Web | **146 passed, 1 skipped** / **108 passed** |
+| Live | Demo clip uploaded → 3 jobs done; page shows "5 scenes … plus 1 return to an earlier slide" and the 5 keyframes |
+
+### Known limitations
+- Thresholds are tuned on synthetic slides. A talking-head video with camera motion, or a moving pointer or laser dot, can produce extra keyframes; real-lecture precision is not measured yet.
+- Changes are found at the sampling rate (1 per second); a slide shown for less than about 2 s may be missed.
+- A uniform brightness change (camera exposure) counts as a change.
+
