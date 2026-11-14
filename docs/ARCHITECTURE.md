@@ -74,7 +74,7 @@ Enums are text columns with CHECK constraints. Integrity rules (box ranges, time
 | Endpoint | Behaviour |
 |---|---|
 | `GET /api/config/upload` | Size limit (bytes), duration limit (s), accept list, format names, retention hours |
-| `POST /api/projects` | Body = raw file. Headers: `X-SeeHere-Title`, `X-SeeHere-Filename` (URL-encoded), `X-SeeHere-Rights-Confirmed: true`. Streams to a 0600 temp file under the size cap, identifies the content with ffprobe (`file:` protocol, `mov,matroska` demuxers only), requires video + audio streams and a duration within the limit, then atomically stores `{project_id}/source.{ext}` and creates the project and media rows. 201 → project |
+| `POST /api/projects` | Body = raw file. Headers: `X-SeeHere-Request: 1` (as for every write, Task 32), `X-SeeHere-Title`, `X-SeeHere-Filename` (URL-encoded), `X-SeeHere-Rights-Confirmed: true`. Streams to a 0600 temp file under the size cap, identifies the content with ffprobe (`file:` protocol, `mov,matroska` demuxers only), requires video + audio streams and a duration within the limit, then atomically stores `{project_id}/source.{ext}` and creates the project and media rows. 201 → project |
 | `GET /api/projects` | Newest first, up to 100 |
 | `GET /api/projects/{id}` | Project with its source facts; 404 `not_found` |
 
@@ -91,6 +91,10 @@ running ──PermanentJobError / out of attempts──▶ failed ──retry─
 queued ──cancel──▶ cancelled        running ──cancel──▶ cancel_requested ──▶ cancelled
 running ──no heartbeat for 60 s (worker died)──▶ queued (or failed / cancelled)
 ```
+
+Provider failures (Task 31, `providers/errors.py`): a hosted-model error carries its HTTP status. 401/403 become a permanent failure that names the key to check ("rejected the API key"); other 4xx and invalid replies are permanent; 408, 429, 5xx and network errors are retried with the backoff above. A failed stage queues nothing after it, so earlier results stay in place until a retry succeeds. Project status: processing while any job is queued or running, else failed if any job failed, else ready once `export.build` has succeeded.
+
+Measurements (Task 33): the worker wraps each attempt in `core/usage.measure()` and appends one entry to `job.metrics`: outcome, wall time, CPU of the worker and of its subprocesses (ffmpeg, Piper, Tesseract), and peak memory (getrusage high-water marks, so "peak" is the worker's peak at the end of that job). The Vultr adapters record every request (operation, HTTP status, latency, billable units: tokens, input characters, audio seconds and bytes), never its content. Writing metrics never changes a job's outcome.
 
 Leases: every update after a claim requires `locked_by = <worker>`; a heartbeat thread refreshes it every 5 s. Delivery is at-least-once, so handlers replace their outputs. Users see only safe error messages; tracebacks stay in the worker log. Every 60 s each worker also recovers stale jobs and runs the retention sweep (expired projects: media directory and rows deleted; stale temp files removed).
 
@@ -146,6 +150,20 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 - Coverage report (Task 28, `report/coverage.py`): one outcome per visual unit (described, described in extended mode, said aloud, repeat, skipped with the scheduler's reason, held for review, rejected, not scheduled); "uncovered" = skipped, held, rejected or not scheduled. Plus counts by verification state, check result and review status, and the timing results. `GET /api/projects/{id}/report`; exported as `report.html` and `report.json`; shown on the Results page.
 - Benchmark (Tasks 29–30, `bench/` and `seehere.bench`): annotation format `seehere-bench/1`; systems = Microsoft GenerateAD WebVTT (pinned baseline, `bench/microsoft/run.sh`), stored greedy, CP-SAT and extended runs, and the reviewed schedule (OBSERVED from recorded decisions, else SIMULATED by re-planning in a rolled-back transaction with held cues approved). Metrics: visual and fact recall, seconds over speech, pause time, unsupported numbers. Every row is labelled OBSERVED, SIMULATED or UNAVAILABLE.
 - Shared matching helpers: `text/words.py` (distinctive words, spoken numbers, rejoining split numbers).
+
+## Security (Task 32, `api/security.py`)
+- Every write (upload, cancel, retry, deck, review) requires `X-SeeHere-Request: 1`. A cross-site form or fetch cannot add it without a CORS preflight, which only the configured web origin passes. A test enumerates every write route from the OpenAPI schema.
+- Rate limits per client address, sliding windows, in memory (one API process): uploads 20/hour, other writes 60/minute, reads 1200/minute; health checks are exempt. Over the limit: 429 `rate_limited` with `Retry-After`. `X-Forwarded-For` is used only when `TRUST_PROXY_HEADERS=true` (behind Caddy).
+- API responses carry `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Resource-Policy: same-site` and `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` (the Swagger docs page is exempt from the CSP only). The web app sends no `X-Powered-By` and sets frame-ancestors, base-uri, form-action and object-src limits, `nosniff`, a referrer policy and a permissions policy.
+- Privacy: logs hold IDs, job kinds and HTTP codes, never transcript, description or prompt text; provider metering stores counts only. The retention sweep deletes each expired project's whole media directory (source, audio, frames, exports, reports) and its rows.
+
+## Performance and cost (Task 33)
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/metrics` | Per job kind: attempts, failures, median / 95th percentile / slowest run time, mean CPU, peak memory; hosted-model calls per operation |
+| `GET /api/projects/{id}/metrics` | Per job: run time, CPU, subprocess CPU, peak memory, provider calls; lecture length, summed processing time, processing seconds per lecture second |
+
+Spend is reported as calls, failures, units and latency. A dollar estimate appears only for operations whose unit price is set (`VULTR_PRICE_PER_MILLION_TOKENS_USD`, `VULTR_PRICE_PER_MILLION_TTS_CHARS_USD`, `VULTR_PRICE_PER_STT_MINUTE_USD`), and only successful calls count. The Status page shows the summary. `python -m seehere.bench.perf` builds a narrated lecture and records a full run through the live API and worker (`bench/results/perf-*.md`).
 
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.

@@ -57,6 +57,9 @@ microsoft/ai-audio-descriptions (MIT, Copyright (c) 2024 Microsoft; licence chec
 ## Tasks 26–30
 No new packages. The report and benchmark use the standard library, SQLAlchemy and the existing number parser. One migration adds the `report_html` and `report_json` export kinds.
 
+## Tasks 31–33
+No new packages. Rate limiting, security headers and measurements use the standard library (`resource`, `contextvars`) and FastAPI middleware. One migration adds `job.metrics`.
+
 ## Hosted models (Vultr Serverless Inference, used via API)
 Model licences are per the Vultr catalog and model cards. `auk` is "evaluation only", so we avoid it.
 
