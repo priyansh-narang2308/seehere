@@ -331,19 +331,29 @@ def recover_stale(session: Session, stale_after_s: float) -> list[uuid.UUID]:
     return [r[0] for r in rows]
 
 
+EXPORT_KIND = "export.build"  # the final pipeline stage (seehere.export.build.JOB_KIND)
+
+
 def refresh_project_status(session: Session, project_id: uuid.UUID) -> None:
     """Derive the project's status from its jobs: processing while any job is queued or running,
-    failed if the latest run of some job failed, otherwise uploaded. ("ready" is set only when
-    the full pipeline exists and finishes; it is not reachable yet.)"""
+    failed if the latest run of some job failed, ready once the export has been built (the last
+    stage), otherwise uploaded. A review that re-queues work moves a ready project back to
+    processing."""
     active = exists().where(Job.project_id == project_id, Job.status.in_(ACTIVE))
     failed = exists().where(Job.project_id == project_id, Job.status == JobStatus.FAILED)
+    exported = exists().where(
+        Job.project_id == project_id,
+        Job.kind == EXPORT_KIND,
+        Job.status == JobStatus.SUCCEEDED,
+    )
     session.execute(
         update(Project)
-        .where(Project.id == project_id, Project.status != ProjectStatus.READY)
+        .where(Project.id == project_id)
         .values(
             status=case(
                 (active, ProjectStatus.PROCESSING.value),
                 (failed, ProjectStatus.FAILED.value),
+                (exported, ProjectStatus.READY.value),
                 else_=ProjectStatus.UPLOADED.value,
             )
         )

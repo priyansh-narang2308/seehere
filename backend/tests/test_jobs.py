@@ -287,6 +287,17 @@ def test_project_status_follows_its_jobs(sessions: Sessions) -> None:
         queue.retry(s, job_id)
         queue.refresh_project_status(s, pid)
     assert _project_status(sessions, pid) is ProjectStatus.PROCESSING
+    with sessions() as s:  # the export (the last stage) succeeds: ready
+        s.execute(
+            update(Job).where(Job.id == job_id).values(kind="export.build", status="succeeded")
+        )
+        s.commit()
+        queue.refresh_project_status(s, pid)
+    assert _project_status(sessions, pid) is ProjectStatus.READY
+    _enqueue(sessions, pid)  # new work (for example after a review): processing again
+    with sessions() as s:
+        queue.refresh_project_status(s, pid)
+    assert _project_status(sessions, pid) is ProjectStatus.PROCESSING
 
 
 # --- worker ----------------------------------------------------------------------------------
