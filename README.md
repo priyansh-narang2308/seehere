@@ -1,7 +1,5 @@
 <div align="center">
 
-  <img src="docs/assets/seehere-logo.svg" alt="SeeHere Logo" width="180"/>
-
   <h1>SeeHere</h1>
 
   <h3>Hear what the lecture shows, not just what it says.</h3>
