@@ -181,6 +181,11 @@ def test_upload_to_published_exports_over_http(
     assert (
         client.get(f"/api/projects/{pid}/video", headers={"Range": "bytes=0-9"}).status_code == 206
     )
+    perf = client.get(f"/api/projects/{pid}/metrics").json()  # every stage was measured
+    assert {st["kind"] for st in perf["stages"]} == set(jobs)
+    assert all(st["run_s"] > 0 for st in perf["stages"])
+    assert perf["video_duration_s"] == pytest.approx(20, abs=0.5)
+    assert perf["processing_per_video_s"] > 0 and perf["providers"] == []  # all local
 
 
 # --- 2-3. provider failures ---------------------------------------------------------------------
@@ -214,6 +219,8 @@ def test_rejected_key_stops_cleanly_and_retry_after_the_fix_completes(
     assert "sk-secret" not in job["error"]
     assert "export.build" not in _jobs(client, pid)  # nothing half-built
     assert client.get(f"/api/projects/{pid}").json()["status"] == "failed"
+    [tts] = client.get(f"/api/projects/{pid}/metrics").json()["providers"]
+    assert (tts["operation"], tts["calls"], tts["failed"]) == ("tts", 1, 1)  # metered, unbilled
     # Earlier results stay available.
     assert (
         client.get(f"/api/projects/{pid}/schedule").json()["placements"]

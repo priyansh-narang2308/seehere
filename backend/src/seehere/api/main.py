@@ -13,6 +13,7 @@ from seehere.api.errors import install_error_handlers
 from seehere.api.exports import router as exports_router
 from seehere.api.health import HealthReport, build_report
 from seehere.api.jobs import router as jobs_router
+from seehere.api.metrics import router as metrics_router
 from seehere.api.ocr import router as ocr_router
 from seehere.api.projects import router as projects_router
 from seehere.api.report import router as report_router
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(schedule_router)
     app.include_router(exports_router)
     app.include_router(report_router)
+    app.include_router(metrics_router)
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict[str, str]:

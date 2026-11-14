@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # --- upload limits (tuned in Task 05/33 from measured capacity) ---
     max_upload_mb: int = 500
-    max_video_duration_s: int = 600
+    max_video_duration_s: int = 1800
 
     @property
     def max_upload_bytes(self) -> int:
@@ -130,6 +130,13 @@ class Settings(BaseSettings):
     piper_bin: str = "piper"  # a separate tool (GPL-3.0), run as a process, never imported
     vultr_tts_voice: str = "serena"
     vultr_tts_timeout_s: float = 60.0
+
+    # --- cost estimates (Task 33) ---
+    # Unit prices for Vultr Serverless Inference, copied from your Vultr billing page. They are
+    # unset by default so no estimate is ever invented: spend is reported as "price not set".
+    vultr_price_per_million_tokens_usd: float | None = None
+    vultr_price_per_million_tts_chars_usd: float | None = None
+    vultr_price_per_stt_minute_usd: float | None = None
 
     @field_validator("vultr_inference_api_key", "gemini_api_key", "smallest_api_key", mode="before")
     @classmethod
