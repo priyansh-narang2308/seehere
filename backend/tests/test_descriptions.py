@@ -12,11 +12,15 @@ import pytest
 from fastapi.testclient import TestClient
 from pipeline_project import add_project, run_jobs, say
 from slide_images import make_deck_video
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.api.main import app
+from seehere.bench.annotation import FORMAT, parse
+from seehere.bench.runner import markdown, run_item
 from seehere.core.config import Settings, get_settings
 from seehere.db.enums import VisualKind
+from seehere.db.models import ScheduleRun
 from seehere.db.session import get_db
 from seehere.describe.generate import write_wordings
 from seehere.text.numbers import extract_numbers
@@ -263,6 +267,51 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert client.get(files["report.json"]["url"]).json()["summary"] == summary
     page = client.get(files["report.html"]["url"]).text
     assert "not a WCAG conformance certification" in page and "<table>" in page
+
+    # Benchmark: stored runs are OBSERVED, the review is SIMULATED and leaves nothing behind.
+    ann = parse(
+        {
+            "format": FORMAT,
+            "item": "deck",
+            "duration_s": 12.0,
+            "speech": [[0.5, 0.5 + 0.3 * (len(SPEECH.split()) - 1) + 0.3]],
+            "visuals": [
+                {
+                    "id": "hire",
+                    "t_start_s": 5.0,
+                    "t_end_s": 9.0,
+                    "text": "Hire 3 engineers by March",
+                    "facts": ["Hire 3 engineers", "March"],
+                    "must_describe": True,
+                },
+                {
+                    "id": "margin",
+                    "t_start_s": 0.0,
+                    "t_end_s": 5.0,
+                    "text": "Operating margin 41.7% in 2022",
+                    "facts": ["2022"],
+                    "must_describe": True,
+                },
+            ],
+        }
+    )
+    with sessions() as s:
+        runs_before = sorted(str(r) for r in s.scalars(select(ScheduleRun.id)))
+        bench = run_item(s, settings, ann, pid, None)
+        assert sorted(str(r) for r in s.scalars(select(ScheduleRun.id))) == runs_before
+    rows = {r["system"]: r for r in bench["systems"]}
+    assert {k: r["evidence"] for k, r in rows.items()} == {
+        "microsoft-ai-audio-descriptions": "UNAVAILABLE",
+        "seehere-greedy": "OBSERVED",
+        "seehere-cp-sat": "OBSERVED",
+        "seehere-extended": "OBSERVED",
+        "seehere-reviewed": "SIMULATED",
+    }
+    assert rows["microsoft-ai-audio-descriptions"]["metrics"] is None
+    cp_m = rows["seehere-cp-sat"]["metrics"]
+    assert cp_m["descriptions"] == len(final["placements"]) and cp_m["speech_overlap_s"] == 0
+    assert cp_m["unsupported_numbers"] == []
+    assert "| seehere-cp-sat | OBSERVED |" in markdown(bench)
 
     # The player streams the lecture with range requests, so it can seek.
     part = client.get(f"/api/projects/{pid}/video", headers={"Range": "bytes=0-99"})
