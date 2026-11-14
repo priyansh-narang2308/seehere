@@ -329,7 +329,9 @@ describe("JobPanel", () => {
     expect(evidence.getByText(/Pointed at \(0:03\)/)).toHaveTextContent("“this number here”");
     expect(screen.getByRole("img", { name: "Keyframe at 0:00" })).toHaveAttribute("src", "/api/frames/k0/image");
     const checks = within(screen.getByRole("list", { name: "Checks" })).getAllByRole("listitem");
-    expect(checks[0]).toHaveTextContent("Found number “41.7%” (read on screen)");
+    expect(checks[0]).toHaveTextContent("Found number “41.7%” (read on screen) → Verified text match");
+    expect(screen.getByTestId("unit-box")).toHaveStyle({ left: "6%", width: "50%" });
+    expect(screen.getAllByTestId("ocr-box")).toHaveLength(1);
     expect(checks[1]).toHaveTextContent("Not found number “2023”: this value does not appear on screen or on the deck page");
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);

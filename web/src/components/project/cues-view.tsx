@@ -189,6 +189,8 @@ function CueItem({ cue: initial, onChanged }: { cue: Cue; onChanged?: () => void
 function Evidence({ ledger }: { ledger: CueLedger }) {
   const frame = ledger.evidence.find((e) => e.frame)?.frame;
   const unit = ledger.evidence.find((e) => e.visual_unit)?.visual_unit;
+  const regions = ledger.evidence.flatMap((e) => (e.ocr_region ? [e.ocr_region.box] : []));
+  const slides = ledger.evidence.flatMap((e) => (e.slide ? [e.slide] : []));
   return (
     <div className="space-y-2 rounded-md border border-border bg-surface-muted p-3">
       {frame && (
@@ -197,15 +199,22 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element -- frames come from the API */}
             <img src={`${API_BASE}${frame.image_url}`} alt={`Keyframe at ${formatDuration(frame.t_s)}`} className="block w-full rounded border border-border" />
-            {unit?.box && (
+            {regions.map((b, i) => (
               <span
+                key={i}
                 aria-hidden="true"
-                className="absolute border-2 border-accent"
-                style={{ left: `${unit.box.x * 100}%`, top: `${unit.box.y * 100}%`, width: `${unit.box.w * 100}%`, height: `${unit.box.h * 100}%` }}
+                data-testid="ocr-box"
+                className="absolute border border-dashed border-warning"
+                style={boxStyle(b)}
               />
+            ))}
+            {unit?.box && (
+              <span aria-hidden="true" data-testid="unit-box" className="absolute border-2 border-accent" style={boxStyle(unit.box)} />
             )}
           </div>
-          <figcaption className="text-xs text-muted">The outlined region is what this description is about.</figcaption>
+          <figcaption className="text-xs text-muted">
+            Solid outline: what this description is about.{regions.length > 0 && " Dashed: text read by OCR."}
+          </figcaption>
         </figure>
       )}
       <p className="text-xs text-ink-2">
@@ -221,6 +230,7 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
               </span>{" "}
               {CHECK_NAME[c.check]} “{c.claim}”
               {c.detail.reason ? `: ${c.detail.reason}` : c.detail.source ? ` (${c.detail.source === "ocr" ? "read on screen" : c.detail.source})` : ""}
+              {" "}→ {VERIFICATION_STATES[c.resulting_state].label}
             </li>
           ))}
         </ul>
@@ -235,6 +245,14 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
           </ul>
         </div>
       )}
+      {slides.map((sl) => (
+        <details key={sl.page} className="text-xs text-ink-2">
+          <summary>
+            Deck page {sl.page} text{sl.score !== null && <> ({Math.round(sl.score * 100)}% match to this frame)</>}
+          </summary>
+          <p className="mt-1 whitespace-pre-line">{sl.text}</p>
+        </details>
+      ))}
       <ul aria-label="Evidence" className="space-y-1 text-xs text-ink-2">
         {ledger.evidence.map((e, i) => (
           <li key={i}>
@@ -272,4 +290,8 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
       )}
     </div>
   );
+}
+
+function boxStyle(b: { x: number; y: number; w: number; h: number }) {
+  return { left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%` };
 }
