@@ -7,6 +7,7 @@ from importlib.metadata import version as pkg_version
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from seehere.api.deck import router as deck_router
 from seehere.api.errors import install_error_handlers
 from seehere.api.health import HealthReport, build_report
 from seehere.api.jobs import router as jobs_router
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs_router)
     app.include_router(transcript_router)
     app.include_router(ocr_router)
+    app.include_router(deck_router)
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict[str, str]:

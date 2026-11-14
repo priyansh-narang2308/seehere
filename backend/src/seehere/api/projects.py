@@ -16,7 +16,6 @@ together; any failure removes the file.
 
 from __future__ import annotations
 
-import hashlib
 import os
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -24,7 +23,6 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import unquote
 
-import anyio
 from fastapi import APIRouter, Depends, Header, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -32,6 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from seehere.api.errors import APIError
+from seehere.api.uploads import receive_upload
 from seehere.core.config import Settings, get_settings
 from seehere.db.enums import MediaKind, ProjectStatus
 from seehere.db.models import MediaAsset, Project
@@ -131,38 +130,26 @@ async def create_project(
         raise APIError(400, "invalid_title", "Enter a title between 1 and 200 characters.")
     filename = sanitize_filename(_header_text(x_seehere_filename, "X-SeeHere-Filename"))
 
-    cap = settings.max_upload_bytes
-    limit_text = f"The limit is {settings.max_upload_mb} MB."
-    declared = request.headers.get("content-length")
-    if declared is not None:
-        if not declared.isdigit():
-            raise APIError(400, "invalid_length", "Invalid Content-Length.")
-        if int(declared) > cap:
-            raise APIError(413, "too_large", f"The file is too large. {limit_text}")
-
     # 2. Stream the body to a private temp file, enforcing the cap as bytes arrive.
     store = MediaStore(settings.media_dir)
-    temp = await run_in_threadpool(store.new_temp_file)
+    upload = await receive_upload(request, store, settings.max_upload_bytes, settings.max_upload_mb)
     try:
-        digest = hashlib.sha256()
-        size = 0
-        async with await anyio.open_file(temp, "wb") as out:
-            async for chunk in request.stream():
-                size += len(chunk)
-                if size > cap:
-                    raise APIError(413, "too_large", f"The file is too large. {limit_text}")
-                digest.update(chunk)
-                await out.write(chunk)
-        if size == 0:
-            raise APIError(400, "empty_file", "The file is empty.")
-
         # 3. Identify by content, then 4. persist atomically.
-        probe = await run_in_threadpool(inspect_lecture_video, temp, settings)
+        probe = await run_in_threadpool(inspect_lecture_video, upload.path, settings)
         project = await run_in_threadpool(
-            _persist, db, store, temp, settings, title, filename, size, digest.hexdigest(), probe
+            _persist,
+            db,
+            store,
+            upload.path,
+            settings,
+            title,
+            filename,
+            upload.size,
+            upload.sha256,
+            probe,
         )
     finally:
-        await run_in_threadpool(lambda: temp.unlink(missing_ok=True))
+        await run_in_threadpool(lambda: upload.path.unlink(missing_ok=True))
     return ProjectOut.from_model(project)
 
 
