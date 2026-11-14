@@ -4,8 +4,9 @@ import { Download, ListChecks } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DescribedPlayer } from "@/components/player/described-player";
 import { EmptyState } from "@/components/ui/empty-state";
-import { apiUrl, formatBytes, getJson, type ExportFile, type Exports, type Schedule, type Transcript } from "@/lib/api";
+import { apiUrl, formatBytes, getJson, type ExportFile, type Exports, type Report, type Schedule, type Transcript } from "@/lib/api";
 import type { PlayCue } from "@/lib/playback";
+import { ReportView } from "./report-view";
 
 const FILE_LABELS: Record<ExportFile["kind"], string> = {
   bundle_zip: "Everything (zip)",
@@ -14,7 +15,9 @@ const FILE_LABELS: Record<ExportFile["kind"], string> = {
   webvtt: "WebVTT description track",
   transcript_html: "Accessible transcript (HTML)",
   cue_audio_zip: "Description audio clips (zip)",
+  report_html: "Coverage and verification report (HTML)",
   manifest_json: "Evidence manifest (JSON)",
+  report_json: "Coverage and verification report (JSON)",
 };
 
 const toCues = (s: Schedule | null): PlayCue[] | null =>
@@ -29,7 +32,7 @@ const toCues = (s: Schedule | null): PlayCue[] | null =>
       }))
     : null;
 
-type Loaded = { standard: Schedule; extended: Schedule; transcript: Transcript; exports: Exports };
+type Loaded = { standard: Schedule; extended: Schedule; transcript: Transcript; exports: Exports; report: Report };
 
 /** The described lecture: a player, and the files to publish. */
 export function ResultsView({ projectId, title }: { projectId: string; title: string }) {
@@ -39,8 +42,8 @@ export function ResultsView({ projectId, title }: { projectId: string; title: st
   useEffect(() => {
     const controller = new AbortController();
     const get = <T,>(path: string) => getJson<T>(`/api/projects/${projectId}${path}`, { signal: controller.signal });
-    Promise.all([get<Schedule>("/schedule"), get<Schedule>("/schedule?mode=extended"), get<Transcript>("/transcript"), get<Exports>("/exports")])
-      .then(([standard, extended, transcript, exports]) => setData({ standard, extended, transcript, exports }))
+    Promise.all([get<Schedule>("/schedule"), get<Schedule>("/schedule?mode=extended"), get<Transcript>("/transcript"), get<Exports>("/exports"), get<Report>("/report")])
+      .then(([standard, extended, transcript, exports, report]) => setData({ standard, extended, transcript, exports, report }))
       .catch(() => {
         if (!controller.signal.aborted) setFailed(true);
       });
@@ -105,6 +108,7 @@ export function ResultsView({ projectId, title }: { projectId: string; title: st
           ))}
         </ul>
       </section>
+      {data.report.available && <ReportView report={data.report} />}
     </div>
   );
 }

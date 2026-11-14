@@ -107,4 +107,6 @@ class ExportKind(StrEnum):
     EXTENDED_MP4 = "extended_mp4"
     TRANSCRIPT_HTML = "transcript_html"
     MANIFEST_JSON = "manifest_json"
+    REPORT_HTML = "report_html"
+    REPORT_JSON = "report_json"
     BUNDLE_ZIP = "bundle_zip"

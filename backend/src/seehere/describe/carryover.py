@@ -62,8 +62,7 @@ def remember_reviews(s: Session, project_id: uuid.UUID) -> dict[tuple[str, float
             (cue.text_short, cue.text_medium, cue.text_long)
             if last_text is ReviewAction.EDIT
             else None,
-            [(d.action, d.previous_text, d.new_text, d.note)
-             for d in decisions],
+            [(d.action, d.previous_text, d.new_text, d.note) for d in decisions],
         )
     return kept
 
@@ -78,8 +77,7 @@ def restore_reviews(
     Returns how many were restored. Does not commit."""
     restored = 0
     for cue in cues:
-        key = _key(units.get(cue.visual_unit_id)
-                   ) if cue.visual_unit_id else None
+        key = _key(units.get(cue.visual_unit_id)) if cue.visual_unit_id else None
         k = kept.get(key) if key else None
         if k is None:
             continue
@@ -88,8 +86,7 @@ def restore_reviews(
             cue.text_short, cue.text_medium, cue.text_long = k.edited
         s.flush()
         s.add_all(
-            ReviewDecision(cue_id=cue.id, action=a,
-                           previous_text=p, new_text=n, note=nt)
+            ReviewDecision(cue_id=cue.id, action=a, previous_text=p, new_text=n, note=nt)
             for a, p, n, nt in k.decisions
         )
         restored += 1

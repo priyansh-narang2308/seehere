@@ -231,6 +231,8 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
         "lecture-extended.mp4",
         "transcript.html",
         "manifest.json",
+        "report.html",
+        "report.json",
         "seehere-export.zip",
     }
     vtt = client.get(files["descriptions.vtt"]["url"])
@@ -245,6 +247,22 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert all(d["evidence"] and d["checks"] for d in manifest["descriptions"])
     html = client.get(files["transcript.html"]["url"]).text
     assert '<html lang="en">' in html and "Description:" in html
+
+    # Coverage report: one outcome per visual, consistent with the final schedule.
+    report = client.get(f"/api/projects/{pid}/report").json()
+    summary = report["summary"]
+    assert summary["visual_units"] == len(report["items"]) > 0
+    assert summary["described"] == len({p["cue_id"] for p in final["placements"]})
+    assert summary["uncovered"] == sum(
+        i["outcome"] in {"skipped", "held_for_review", "rejected", "not_scheduled"}
+        for i in report["items"]
+    )
+    assert sum(report["verification"].values()) == summary["descriptions"] == len(cues)
+    assert all(i["reason"] for i in report["items"] if i["outcome"] == "skipped")
+    assert report["timing"]["standard"]["check"]["status"] == "fits"
+    assert client.get(files["report.json"]["url"]).json()["summary"] == summary
+    page = client.get(files["report.html"]["url"]).text
+    assert "not a WCAG conformance certification" in page and "<table>" in page
 
     # The player streams the lecture with range requests, so it can seek.
     part = client.get(f"/api/projects/{pid}/video", headers={"Range": "bytes=0-99"})

@@ -200,3 +200,11 @@ def test_rendered_videos_have_the_planned_length(tmp_path: Path, pause_at_start:
         check=True,
     )
     assert _probe(std) == pytest.approx(6.0, abs=0.15)
+
+
+def test_every_export_kind_has_a_file_name_and_media_type() -> None:
+    from seehere.api.exports import MEDIA_TYPES
+    from seehere.db.enums import ExportKind
+    from seehere.export.build import FILES
+
+    assert set(FILES) == set(MEDIA_TYPES) == set(ExportKind)

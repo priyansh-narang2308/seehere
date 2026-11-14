@@ -264,7 +264,7 @@ export const apiUrl = (path: string) => `${API_BASE}${path}`;
 
 export type ExportFile = {
   id: string;
-  kind: "webvtt" | "cue_audio_zip" | "standard_mp4" | "extended_mp4" | "transcript_html" | "manifest_json" | "bundle_zip";
+  kind: "webvtt" | "cue_audio_zip" | "standard_mp4" | "extended_mp4" | "transcript_html" | "manifest_json" | "report_html" | "report_json" | "bundle_zip";
   filename: string;
   size_bytes: number;
   sha256: string;
@@ -273,6 +273,47 @@ export type ExportFile = {
 };
 
 export type Exports = { available: boolean; files: ExportFile[] };
+
+export type ReportOutcome =
+  | "described"
+  | "described_extended"
+  | "said_aloud"
+  | "repeat"
+  | "skipped"
+  | "held_for_review"
+  | "rejected"
+  | "not_scheduled";
+
+/** Coverage and verification report (Task 28): one outcome per visual on screen. */
+export type Report =
+  | { available: false }
+  | {
+      available: true;
+      summary: Record<ReportOutcome, number> & { visual_units: number; uncovered: number; descriptions: number };
+      verification: Record<VerificationState, number>;
+      checks: { pass: number; fail: number; inconclusive: number };
+      review: { pending: number; approved: number; rejected: number };
+      timing: {
+        standard?: { solver: string; round: number; check: { status: string; rejected?: unknown[] } | null };
+        extended?: { round: number; budget_s: number | null; paused_s: number | null; extended_duration_s: number | null };
+      };
+      items: {
+        visual_unit_id: string;
+        kind: VisualKind;
+        label: string;
+        t_start_s: number;
+        t_end_s: number;
+        coverage: number | null;
+        outcome: ReportOutcome;
+        reason: string | null;
+        cue_id: string | null;
+        text: string | null;
+        verification_state: VerificationState | null;
+        review_status: "pending" | "approved" | "rejected" | null;
+        pause_s: number | null;
+      }[];
+      notice: string;
+    };
 
 export async function getJson<T>(path: string, init?: RequestInit, base = API_BASE): Promise<T> {
   let res: Response;

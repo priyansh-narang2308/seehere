@@ -7,6 +7,7 @@ Built from the selected standard and extended schedules after the timing check p
 - `lecture-extended.mp4`: the video pausing (frame held) where extended mode needs it;
 - `transcript.html`: speech and descriptions in time order;
 - `manifest.json`: every description with its evidence, checks, timing and file hashes;
+- `report.html` / `report.json`: the coverage and verification report (Task 28);
 - `seehere-export.zip`: all of the above.
 Files are built in a private work directory and moved into place together.
 """
@@ -58,6 +59,7 @@ from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.media.ffmpeg import FFmpegCancelled, FFmpegError, input_args, run_ffmpeg
 from seehere.media.storage import MediaStore, project_dir
+from seehere.report.coverage import load_report, report_html
 
 log = logging.getLogger("seehere.export")
 
@@ -76,6 +78,8 @@ FILES = {
     ExportKind.EXTENDED_MP4: "lecture-extended.mp4",
     ExportKind.TRANSCRIPT_HTML: "transcript.html",
     ExportKind.MANIFEST_JSON: "manifest.json",
+    ExportKind.REPORT_HTML: "report.html",
+    ExportKind.REPORT_JSON: "report.json",
     ExportKind.BUNDLE_ZIP: "seehere-export.zip",
 }
 
@@ -236,6 +240,7 @@ def build_export(ctx: JobContext, job: ClaimedJob) -> None:
             if r is not None
         ]
         cue_info = {c.id: (c.anchor_t_s, c.verification_state.value) for c in cues.values()}
+        report = load_report(s, pid)
 
     work = store.new_temp_dir()
     try:
@@ -248,6 +253,10 @@ def build_export(ctx: JobContext, job: ClaimedJob) -> None:
             (work / "descriptions-extended.vtt").write_text(webvtt(ext, extended=True), "utf-8")
         (work / FILES[ExportKind.TRANSCRIPT_HTML]).write_text(
             transcript_html(title, speech, std, not_voiced), "utf-8"
+        )
+        (work / FILES[ExportKind.REPORT_HTML]).write_text(report_html(title, report), "utf-8")
+        (work / FILES[ExportKind.REPORT_JSON]).write_text(
+            json.dumps(report, indent=2, ensure_ascii=False), "utf-8"
         )
         with zipfile.ZipFile(work / FILES[ExportKind.CUE_AUDIO_ZIP], "w") as z:
             for name in sorted(clip_by_name):

@@ -31,6 +31,8 @@ MEDIA_TYPES = {
     ExportKind.EXTENDED_MP4: "video/mp4",
     ExportKind.TRANSCRIPT_HTML: "text/html",
     ExportKind.MANIFEST_JSON: "application/json",
+    ExportKind.REPORT_HTML: "text/html",
+    ExportKind.REPORT_JSON: "application/json",
     ExportKind.BUNDLE_ZIP: "application/zip",
 }
 
@@ -93,7 +95,7 @@ def download_export(
         raise APIError(404, "not_found", "The export file is no longer stored.")
     # HTML is always downloaded, never rendered in our origin.
     disposition = (
-        "inline" if inline and art.kind is not ExportKind.TRANSCRIPT_HTML else "attachment"
+        "inline" if inline and MEDIA_TYPES[art.kind] != "text/html" else "attachment"
     )
     return FileResponse(
         path,
