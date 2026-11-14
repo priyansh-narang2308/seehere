@@ -21,9 +21,10 @@ from seehere.core.config import Settings
 from seehere.db.enums import MediaKind, VisualKind
 from seehere.db.models import Frame, MediaAsset, OcrRegion, VisualUnit
 from seehere.jobs import queue
-from seehere.jobs.errors import PermanentJobError, RetryableJobError
+from seehere.jobs.errors import PermanentJobError
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
+from seehere.providers.errors import job_error
 from seehere.providers.vision_vultr import VisionError, VisionOutputInvalid, VultrVisionAnalyzer
 from seehere.vision.coverage import queue_coverage
 from seehere.vision.schema import PROMPT, UNITS_SCHEMA
@@ -189,7 +190,7 @@ def analyze_visuals(ctx: JobContext, job: ClaimedJob) -> None:
                 log.warning("frame %s: %s; keeping OCR blocks", kf.id, exc)
             except VisionError as exc:
                 log.warning("vision request failed on frame %s: %s", kf.id, exc)
-                raise RetryableJobError("The vision model could not be reached.") from exc
+                raise job_error(exc, "The Vultr vision model") from None
         results.append((kf, units))
 
     ctx.progress("save", 0.95)

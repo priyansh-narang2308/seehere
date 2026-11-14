@@ -16,10 +16,11 @@ import httpx
 from pydantic import SecretStr
 
 from seehere.providers.base import Capability, ProviderInfo, SynthesizedAudio, VerificationState
+from seehere.providers.errors import ProviderError
 from seehere.providers.tts_piper import wav_duration_ms
 
 
-class VultrTTSError(RuntimeError):
+class VultrTTSError(ProviderError):
     """The request failed. The message never contains the API key."""
 
 
@@ -67,12 +68,12 @@ class VultrTTS:
             except httpx.HTTPError as e:
                 raise VultrTTSError(f"request failed: {type(e).__name__}") from None
         if r.status_code != 200:
-            raise VultrTTSError(f"HTTP {r.status_code} from text-to-speech")
+            raise VultrTTSError(f"HTTP {r.status_code} from text-to-speech", status=r.status_code)
         try:
             with wave.open(io.BytesIO(r.content), "rb") as w:
                 w.getframerate()
         except (wave.Error, EOFError):
-            raise VultrTTSError("the reply was not WAV audio") from None
+            raise VultrTTSError("the reply was not WAV audio", retryable=False) from None
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(r.content)
         return SynthesizedAudio(out_path, wav_duration_ms(out_path), "vultr", voice or self.voice)

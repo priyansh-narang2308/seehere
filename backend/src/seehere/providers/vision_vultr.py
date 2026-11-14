@@ -24,11 +24,12 @@ from jsonschema.exceptions import ValidationError
 from pydantic import SecretStr
 
 from seehere.providers.base import Capability, ProviderInfo, VerificationState
+from seehere.providers.errors import ProviderError
 
 MAX_IMAGE_BYTES = 20 * 1024 * 1024  # documented input limit
 
 
-class VisionError(RuntimeError):
+class VisionError(ProviderError):
     """The request failed. The message never contains the API key."""
 
 
@@ -78,7 +79,7 @@ class VultrVisionAnalyzer:
     def _image_url(self, image_path: Path) -> str:
         data = image_path.read_bytes()
         if len(data) > MAX_IMAGE_BYTES:
-            raise VisionError("image is larger than the documented 20 MB limit")
+            raise VisionError("image is larger than the documented 20 MB limit", retryable=False)
         mime = mimetypes.guess_type(image_path.name)[0] or "image/jpeg"
         return f"data:{mime};base64,{base64.b64encode(data).decode()}"
 
@@ -103,7 +104,7 @@ class VultrVisionAnalyzer:
         except httpx.HTTPError as exc:
             raise VisionError(f"request failed: {type(exc).__name__}") from None
         if r.status_code != 200:
-            raise VisionError(f"Vultr returned HTTP {r.status_code}")
+            raise VisionError(f"Vultr returned HTTP {r.status_code}", status=r.status_code)
         try:
             return str(r.json()["choices"][0]["message"]["content"])
         except (ValueError, KeyError, IndexError, TypeError):

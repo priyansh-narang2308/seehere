@@ -26,8 +26,9 @@ from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.media.storage import MediaStore, project_dir
 from seehere.providers.base import TextToSpeech
+from seehere.providers.errors import job_error
 from seehere.providers.tts_piper import PiperError, PiperTTS, PiperVoiceMissing
-from seehere.providers.tts_vultr import VultrTTS
+from seehere.providers.tts_vultr import VultrTTS, VultrTTSError
 from seehere.schedule.timing import queue_timing_check
 
 log = logging.getLogger("seehere.tts")
@@ -126,6 +127,9 @@ def synthesize_speech(ctx: JobContext, job: ClaimedJob) -> None:
                 out = tts.synthesize(text, path)
             except (PiperVoiceMissing, PiperError) as e:
                 raise PermanentJobError(str(e)) from None
+            except VultrTTSError as e:
+                log.warning("text-to-speech failed for cue %s: %s", cue_id, e)
+                raise job_error(e, "Vultr text-to-speech") from None
             s.add(
                 AudioClip(
                     cue_id=cue_id,

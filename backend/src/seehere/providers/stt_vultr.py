@@ -24,11 +24,12 @@ from seehere.providers.base import (
     Transcript,
     VerificationState,
 )
+from seehere.providers.errors import ProviderError
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # documented request limit
 
 
-class VultrSTTError(RuntimeError):
+class VultrSTTError(ProviderError):
     """The request failed. The message never contains the API key."""
 
 
@@ -66,7 +67,9 @@ class VultrWhisperSTT:
     ) -> Transcript:
         size = audio_path.stat().st_size
         if size > MAX_UPLOAD_BYTES:
-            raise VultrSTTError(f"audio is {size} bytes; the documented limit is 25 MB")
+            raise VultrSTTError(
+                f"audio is {size} bytes; the documented limit is 25 MB", retryable=False
+            )
         data = {"model": self.model, "response_format": "json"}
         if language:
             data["language"] = language
@@ -84,7 +87,7 @@ class VultrWhisperSTT:
             except httpx.HTTPError as exc:
                 raise VultrSTTError(f"request failed: {type(exc).__name__}") from None
         if r.status_code != 200:
-            raise VultrSTTError(f"Vultr returned HTTP {r.status_code}")
+            raise VultrSTTError(f"Vultr returned HTTP {r.status_code}", status=r.status_code)
         try:
             body = r.json()
             text = str(body["text"]).strip()
