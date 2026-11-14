@@ -14,6 +14,7 @@ from seehere.api.jobs import router as jobs_router
 from seehere.api.ocr import router as ocr_router
 from seehere.api.projects import router as projects_router
 from seehere.api.transcript import router as transcript_router
+from seehere.api.visuals import router as visuals_router
 from seehere.core.config import get_settings
 
 VERSION = pkg_version("seehere")
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(transcript_router)
     app.include_router(ocr_router)
     app.include_router(deck_router)
+    app.include_router(visuals_router)
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict[str, str]:
