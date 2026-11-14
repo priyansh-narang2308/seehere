@@ -59,6 +59,7 @@ const STAGES: Record<string, string> = {
   write: "Writing descriptions",
   verify: "Checking claims against the evidence",
   schedule: "Fitting descriptions into pauses",
+  synthesize: "Generating the description voice",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -76,7 +77,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
   const visualsLoadedFor = useRef<string | null>(null);
   const [described, setDescribed] = useState<{ cues: Cues; references: References } | null>(null);
   const describedFor = useRef<string | null>(null);
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [schedule, setSchedule] = useState<{ standard: Schedule; extended: Schedule | null } | null>(null);
   const scheduleFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -170,13 +171,20 @@ export function JobPanel({ projectId }: { projectId: string }) {
           setDescribed(null);
         }
         const planned = next.jobs.find(
-          (j) => j.kind === "schedule.greedy" && (j.status === "succeeded" || j.status === "failed"),
+          (j) => j.kind === "schedule.plan" && (j.status === "succeeded" || j.status === "failed"),
         );
-        const plannedKey = planned ? `${planned.id}:${planned.finished_at}` : null;
+        const voiced = next.jobs.find((j) => j.kind === "speech.synthesize" && j.status === "succeeded");
+        const plannedKey = planned ? `${planned.id}:${planned.finished_at}:${voiced?.finished_at ?? ""}` : null;
         if (plannedKey && scheduleFor.current !== plannedKey) {
           scheduleFor.current = plannedKey;
-          getJson<Schedule>(`/api/projects/${projectId}/schedule`, { signal: controller.signal })
-            .then((sc) => setSchedule(sc.available ? sc : null))
+          const url = `/api/projects/${projectId}/schedule`;
+          Promise.all([
+            getJson<Schedule>(url, { signal: controller.signal }),
+            getJson<Schedule>(`${url}?mode=extended`, { signal: controller.signal }),
+          ])
+            .then(([standard, extended]) =>
+              setSchedule(standard.available ? { standard, extended: extended.available ? extended : null } : null),
+            )
             .catch(() => {});
         }
         if (!planned) {
@@ -256,7 +264,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
       {visuals && <VisualsView visuals={visuals} />}
       {described && <ReferencesView references={described.references.references} />}
       {described && <CuesView cues={described.cues.cues} />}
-      {schedule && <ScheduleView schedule={schedule} durationS={media?.audio?.duration_s ?? null} />}
+      {schedule && <ScheduleView standard={schedule.standard} extended={schedule.extended} durationS={media?.audio?.duration_s ?? null} />}
       <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}
     </section>

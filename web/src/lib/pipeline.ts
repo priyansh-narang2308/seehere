@@ -89,8 +89,14 @@ export const pipelineStages: readonly PipelineStage[] = [
   },
   {
     id: "voice",
-    name: "Speech synthesis and timing check",
-    summary: "Each description is spoken, measured, and re-scheduled if the real audio does not fit.",
+    name: "Speech synthesis",
+    summary: "Each scheduled description is spoken by a local voice and its real length is measured.",
+    status: "built",
+  },
+  {
+    id: "timing",
+    name: "Timing check",
+    summary: "Descriptions whose real audio does not fit their pause are re-scheduled or dropped.",
     status: "not_built",
   },
   {

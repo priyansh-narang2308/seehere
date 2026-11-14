@@ -183,10 +183,26 @@ export type Schedule = {
     start_s: number;
     end_s: number;
     verification_state: VerificationState;
+    pause_s: number;
+    pause_reason: string | null;
+    audio_url: string | null;
+    audio_s: number | null;
   }[];
   not_placed: { cue_id: string; text: string; reason: string }[];
   priority_placed_share: number | null;
   duration_ms: number | null;
+  pause_budget_s: number | null;
+  paused_s: number | null;
+  extended_duration_s: number | null;
+  comparison: Record<"greedy" | "cp_sat", SolverResult> | null;
+};
+
+export type SolverResult = {
+  placed: number;
+  priority_placed_share: number | null;
+  described_s: number;
+  duration_ms: number;
+  status?: string;
 };
 
 export class ApiError extends Error {

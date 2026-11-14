@@ -334,32 +334,54 @@ describe("JobPanel", () => {
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });
 
-  it("shows the schedule: what plays in which pause and what could not be voiced", async () => {
-    const planned = job({ id: "job-10", kind: "schedule.greedy", label: "Scheduling", status: "succeeded", progress: 1, finished_at: NOW });
-    const schedule: Schedule = {
-      available: true,
-      solver: "greedy",
+  it("shows the schedule: what plays in which pause, the solver comparison and extended pauses", async () => {
+    const planned = job({ id: "job-10", kind: "schedule.plan", label: "Scheduling", status: "succeeded", progress: 1, finished_at: NOW });
+    const voiced = job({ id: "job-11", kind: "speech.synthesize", label: "Speech synthesis", status: "succeeded", progress: 1, finished_at: NOW });
+    const placed = { cue_id: "c4", variant: "short" as const, text: "On screen: “Next steps”.", start_s: 6.05, end_s: 7.89, verification_state: "verified_text_match" as const, pause_s: 0, pause_reason: null, audio_url: "/api/audio/a4", audio_s: 1.62 };
+    const base = { available: true, status: "succeeded" as const, windows: [{ start_s: 6.05, end_s: 12 }], priority_placed_share: 0.5, duration_ms: 0.4, pause_budget_s: null, paused_s: null, extended_duration_s: null, comparison: null };
+    const standard: Schedule = {
+      ...base,
+      solver: "cp_sat",
       mode: "standard",
-      status: "succeeded",
-      windows: [{ start_s: 6.05, end_s: 12 }],
-      placements: [
-        { cue_id: "c4", variant: "short", text: "On screen: “Next steps”.", start_s: 6.05, end_s: 7.89, verification_state: "verified_text_match" },
-      ],
+      placements: [placed],
       not_placed: [{ cue_id: "c1", text: "On screen: “Quarterly Revenue”.", reason: "no pause in speech while it is on screen" }],
-      priority_placed_share: 0.5,
-      duration_ms: 0.4,
+      comparison: {
+        greedy: { placed: 1, priority_placed_share: 0.4, described_s: 1.8, duration_ms: 0.1 },
+        cp_sat: { placed: 1, priority_placed_share: 0.5, described_s: 1.8, duration_ms: 4, status: "optimal" },
+      },
     };
-    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), planned]], (url) =>
-      url.endsWith("/schedule") ? schedule : undefined,
+    const extended: Schedule = {
+      ...base,
+      solver: "cp_sat",
+      mode: "extended",
+      placements: [
+        { ...placed, cue_id: "c1", text: "On screen: “Quarterly Revenue”.", start_s: 0, end_s: 1.9, pause_s: 1.4, pause_reason: "Quarterly Revenue is on screen while the speaker talks.", audio_url: "/api/audio/a1", audio_s: 1.9 },
+        placed,
+      ],
+      not_placed: [],
+      pause_budget_s: 1.92,
+      paused_s: 1.4,
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), planned, voiced]], (url) =>
+      url.endsWith("/schedule") ? standard : url.endsWith("/schedule?mode=extended") ? extended : undefined,
     );
     const { container } = render(<JobPanel projectId={PROJECT} />);
-    expect(await screen.findByText(/1 of 2 descriptions fit into pauses in speech, with no overlap/)).toBeInTheDocument();
-    const placed = within(screen.getByRole("list", { name: "Scheduled descriptions" })).getByRole("listitem");
-    expect(placed).toHaveTextContent("0:06.0–0:07.8On screen: “Next steps”. (short)");
+    expect(await screen.findByText(/1 of 2 descriptions fit into pauses in speech, with no overlap\. Lengths are measured/)).toBeInTheDocument();
+    expect(screen.getByText(/greedy placed 1 \(\s*40% of priority\) and CP-SAT placed 1 \(50%\)/)).toBeInTheDocument();
+    const item = within(screen.getByRole("list", { name: "Scheduled descriptions" })).getByRole("listitem");
+    expect(item).toHaveTextContent("0:06.0–0:07.8On screen: “Next steps”. (short, 1.6 s spoken)");
+    expect(within(item).getByLabelText("Play: On screen: “Next steps”.")).toHaveAttribute("src", "/api/audio/a4");
     expect(within(screen.getByRole("list", { name: "Descriptions not voiced" })).getByRole("listitem")).toHaveTextContent(
       "On screen: “Quarterly Revenue”. — no pause in speech while it is on screen",
     );
-    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    let results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+
+    await userEvent.click(screen.getByRole("button", { name: "extended" }));
+    expect(screen.getByRole("button", { name: "extended" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/2 of 2 descriptions are voiced; the video pauses 1\.4 s in total \(budget 1\.92 s\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Video pauses 1\.4 s: Quarterly Revenue is on screen while the speaker talks\./)).toBeInTheDocument();
+    results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });
 
