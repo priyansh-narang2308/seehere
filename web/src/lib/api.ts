@@ -118,6 +118,51 @@ export type Visuals = {
   }[];
 };
 
+export type Box = { x: number; y: number; w: number; h: number };
+export type VerificationState = "verified_text_match" | "corroborated" | "uncertain" | "needs_review";
+
+/** A spoken pointer such as "this line here" and what it was linked to (Task 14). */
+export type References = {
+  available: boolean;
+  references: {
+    phrase: string;
+    t_s: number;
+    status: "linked" | "ambiguous" | "unresolved";
+    confidence: number;
+    visual_unit_id: string | null;
+    label: string | null;
+  }[];
+};
+
+export type Cue = {
+  id: string;
+  visual_unit_id: string | null;
+  text_short: string;
+  text_medium: string | null;
+  text_long: string | null;
+  anchor_t_s: number;
+  priority: number;
+  verification_state: VerificationState;
+  review_status: "pending" | "approved" | "rejected";
+};
+
+export type Cues = { available: boolean; cues: Cue[] };
+
+/** Everything one cue rests on (Task 15). Paths in `image_url` are relative to the API. */
+export type CueLedger = {
+  cue: Cue;
+  evidence: {
+    kind: "frame" | "ocr_region" | "slide" | "transcript_span" | "visual_unit";
+    note: string | null;
+    frame: { id: string; t_s: number; image_url: string } | null;
+    ocr_region: { text: string; confidence: number; box: Box } | null;
+    slide: { page: number; text: string; score: number | null } | null;
+    visual_unit: { kind: VisualKind; label: string; box: Box | null; t_start_s: number; t_end_s: number; coverage: number | null } | null;
+    transcript: { start_s: number; end_s: number; text: string } | null;
+  }[];
+  checks: { claim: string; check: string; result: "pass" | "fail" | "inconclusive" }[];
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

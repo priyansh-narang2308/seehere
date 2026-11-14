@@ -20,10 +20,14 @@ import {
   type OcrResult,
   type Transcript,
   type Visuals,
+  type Cues,
+  type References,
 } from "@/lib/api";
 import { DeckSection } from "./deck-section";
 import { OcrView } from "./ocr-view";
 import { TranscriptView } from "./transcript-view";
+import { CuesView } from "./cues-view";
+import { ReferencesView } from "./references-view";
 import { VisualsView } from "./visuals-view";
 
 const POLL_MS = 1000;
@@ -49,6 +53,8 @@ const STAGES: Record<string, string> = {
   read: "Reading on-screen text",
   align: "Matching pages to the video",
   analyze: "Finding charts, tables and text",
+  resolve: "Linking spoken references",
+  write: "Writing descriptions",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -64,6 +70,8 @@ export function JobPanel({ projectId }: { projectId: string }) {
   const ocrLoadedFor = useRef<string | null>(null);
   const [visuals, setVisuals] = useState<Visuals | null>(null);
   const visualsLoadedFor = useRef<string | null>(null);
+  const [described, setDescribed] = useState<{ cues: Cues; references: References } | null>(null);
+  const describedFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -137,6 +145,22 @@ export function JobPanel({ projectId }: { projectId: string }) {
           visualsLoadedFor.current = null;
           setVisuals(null);
         }
+        // References and descriptions are written in sequence: load both once the last finishes.
+        const written = next.jobs.find((j) => j.kind === "descriptions.generate" && j.status === "succeeded");
+        const writtenKey = written ? `${written.id}:${written.finished_at}` : null;
+        if (writtenKey && describedFor.current !== writtenKey) {
+          describedFor.current = writtenKey;
+          Promise.all([
+            getJson<Cues>(`/api/projects/${projectId}/cues`, { signal: controller.signal }),
+            getJson<References>(`/api/projects/${projectId}/references`, { signal: controller.signal }),
+          ])
+            .then(([cues, references]) => setDescribed(cues.available ? { cues, references } : null))
+            .catch(() => {});
+        }
+        if (!written) {
+          describedFor.current = null;
+          setDescribed(null);
+        }
         const active = next.jobs.some(isActive);
         if (active) timer = setTimeout(refresh, POLL_MS);
         // Work just finished: re-render the server parts of the page (project status badge).
@@ -208,6 +232,8 @@ export function JobPanel({ projectId }: { projectId: string }) {
       {media && <PreparedOutputs media={media} />}
       {ocr && <OcrView ocr={ocr} />}
       {visuals && <VisualsView visuals={visuals} />}
+      {described && <ReferencesView references={described.references.references} />}
+      {described && <CuesView cues={described.cues.cues} />}
       <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}
     </section>

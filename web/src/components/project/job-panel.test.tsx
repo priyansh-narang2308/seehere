@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Deck, Job, JobList, PreparedMedia, Transcript, Visuals } from "@/lib/api";
+import type { Cue, CueLedger, Deck, Job, JobList, PreparedMedia, References, Transcript, Visuals } from "@/lib/api";
 import { JobPanel } from "./job-panel";
 
 const refresh = vi.fn();
@@ -272,6 +272,58 @@ describe("JobPanel", () => {
     expect(items[0]).toHaveTextContent("0% said aloud · not said: margin, 41.7%");
     expect(items[1]).toHaveTextContent("Chart");
     expect(items[1]).toHaveTextContent("75% said aloud");
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("lists references and descriptions, and shows a cue's evidence on request", async () => {
+    const written = job({ id: "job-8", kind: "descriptions.generate", label: "Descriptions", status: "succeeded", progress: 1, finished_at: NOW });
+    const cue: Cue = {
+      id: "c1",
+      visual_unit_id: "u1",
+      text_short: "On screen: “Operating margin 41.7% in 2022”.",
+      text_medium: null,
+      text_long: null,
+      anchor_t_s: 3.2,
+      priority: 0.8,
+      verification_state: "needs_review",
+      review_status: "pending",
+    };
+    const references: References = {
+      available: true,
+      references: [
+        { phrase: "this number here", t_s: 3.2, status: "linked", confidence: 0.9, visual_unit_id: "u1", label: "Operating margin 41.7% in 2022" },
+        { phrase: "this line", t_s: 7, status: "ambiguous", confidence: 0, visual_unit_id: null, label: null },
+      ],
+    };
+    const ledger: CueLedger = {
+      cue,
+      evidence: [
+        { kind: "frame", note: "keyframe", frame: { id: "k0", t_s: 0, image_url: "/api/frames/k0/image" }, ocr_region: null, slide: null, visual_unit: null, transcript: null },
+        { kind: "ocr_region", note: "text read", frame: null, ocr_region: { text: "Operating margin 41.7% in 2022", confidence: 0.93, box: { x: 0.06, y: 0.46, w: 0.5, h: 0.06 } }, slide: null, visual_unit: null, transcript: null },
+        { kind: "transcript_span", note: "spoken reference: this number here", frame: null, ocr_region: null, slide: null, visual_unit: null, transcript: { start_s: 3.2, end_s: 3.9, text: "this number here" } },
+        { kind: "visual_unit", note: "ocr unit", frame: null, ocr_region: null, slide: null, visual_unit: { kind: "text_block", label: "Operating margin 41.7% in 2022", box: { x: 0.06, y: 0.46, w: 0.5, h: 0.06 }, t_start_s: 0, t_end_s: 5, coverage: 0.25 }, transcript: null },
+      ],
+      checks: [],
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), written]], (url) =>
+      url.endsWith("/cues") ? { available: true, cues: [cue] } : url.endsWith("/references") ? references : url.endsWith("/c1/evidence") ? ledger : undefined,
+    );
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    const refs = within(await screen.findByRole("list", { name: "Spoken references" })).getAllByRole("listitem");
+    expect(refs[0]).toHaveTextContent("“this number here” points at “Operating margin 41.7% in 2022” (90% confidence)");
+    expect(refs[1]).toHaveTextContent("needs review: more than one item fits");
+
+    const cues = within(screen.getByRole("list", { name: "Descriptions" }));
+    expect(cues.getByText(cue.text_short)).toBeInTheDocument();
+    expect(cues.getByText("Needs review")).toBeInTheDocument();
+    const button = cues.getByRole("button", { name: "Show evidence" });
+    await userEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    const evidence = within(await screen.findByRole("list", { name: "Evidence" }));
+    expect(evidence.getByText(/Read on screen: “Operating margin 41.7% in 2022” \(93% OCR confidence\)/)).toBeInTheDocument();
+    expect(evidence.getByText(/Pointed at \(0:03\)/)).toHaveTextContent("“this number here”");
+    expect(screen.getByRole("img", { name: "Keyframe at 0:00" })).toHaveAttribute("src", "/api/frames/k0/image");
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });

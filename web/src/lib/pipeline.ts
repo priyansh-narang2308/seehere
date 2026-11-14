@@ -67,13 +67,13 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "references",
     name: "Reference resolution",
     summary: "Phrases like “this blue line here” are linked to a screen region, or flagged when unclear.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "generate",
     name: "Description writing",
     summary: "Short, medium and long descriptions are written only from the recorded evidence.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "verify",
