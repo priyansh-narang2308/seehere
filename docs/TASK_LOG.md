@@ -758,3 +758,8 @@ README rewritten (25 sections), five SVG diagrams in `docs/assets/`, screenshots
 
 ### Checks
 `make check`: ruff, format, mypy, **647 passed / 4 skipped** backend, ESLint, tsc, **128 passed** web. No horizontal scrolling at 390 px on any page (the Status table scrolls inside its own container).
+
+### Vultr Serverless Inference, live (2026-11-14)
+- With the Serverless Inference subscription key, the opt-in live tests pass for vision (`qwen3.8-flash-next` read "12.5%" from the test chart), text-to-speech and speech-to-text.
+- OBSERVED, demo lecture with `VISION_PROVIDER=vultr`: 6 vision calls, 0 failed, 6,678 prompt and 3,836 completion tokens; upload to ready in 26.5 s (`bench/results/perf-photosynthesis-vultr.md`). Same verdicts as Gemini: only the equation (OCR misread) held for review.
+- The live demo uses Vultr vision. Piper and Whisper stay local for voice and speech-to-text (no per-request cost).

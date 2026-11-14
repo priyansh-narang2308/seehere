@@ -1,10 +1,15 @@
 <div align="center">
 
-# SeeHere
+  <img src="docs/assets/seehere-logo.svg" alt="SeeHere Logo" width="180"/>
 
-### Hear what the lecture shows, not just what it says.
+  <h1>SeeHere</h1>
 
-Evidence-grounded audio descriptions for lecture videos, so blind and low-vision students can follow the charts, slides and "look at this one here" moments that narration leaves out.
+  <h3>Hear what the lecture shows, not just what it says.</h3>
+
+  <p>
+    Evidence-grounded audio descriptions for lecture videos,
+    making visual learning more accessible to blind and low-vision students.
+  </p>
 
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
@@ -12,7 +17,7 @@ Evidence-grounded audio descriptions for lecture videos, so blind and low-vision
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![OR-Tools CP-SAT](https://img.shields.io/badge/OR--Tools-CP--SAT-4285F4)
 ![Vultr](https://img.shields.io/badge/Deploy-Vultr-007BFC?logo=vultr&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-647%20backend%20%C2%B7%20128%20web-2E8B57)
+![Tests](https://img.shields.io/badge/tests-648%20backend%20%C2%B7%20128%20web-2E8B57)
 
 **HackGlobal 2026 · Track 02: Multimodal & Accessibility**
 
@@ -32,7 +37,7 @@ The output is standard: a WebVTT description track, a described MP4, an extended
 
 ## 2. The accessibility problem
 
-Lectures are visual. A lecturer points at a chart and says *"notice how this one drops here"*. A sighted student sees which bar. A blind student hears only a pointer to something they cannot see, and a screen reader cannot help, because the information is in the video's pixels, not in any text.
+Lectures are visual. A lecturer points at a chart and says _"notice how this one drops here"_. A sighted student sees which bar. A blind student hears only a pointer to something they cannot see, and a screen reader cannot help, because the information is in the video's pixels, not in any text.
 
 Audio description fixes this, but describing a lecture by hand takes hours per hour of video, so most course video never gets it. Automatic tools fill the gap with model-generated text. In education that is risky: a confidently wrong number in a description of a chart is worse than no description, and the listener has no way to check it.
 
@@ -55,32 +60,32 @@ SeeHere treats every description as a claim that needs evidence:
 
 ## 5. Key features
 
-| Area | What works today |
-|---|---|
-| Upload | Content-checked video upload (ffprobe, not file extensions), up to 500 MB and 30 minutes, rights confirmation, optional PDF/PPTX slide deck. |
-| Processing | 14 queued pipeline stages with live progress, cancel and retry, crash recovery, and automatic deletion after 24 hours. |
-| Hearing | Local faster-whisper (`small.en`) transcript with word timings; speech windows derived from word gaps. |
-| Seeing | Slide-change detection with keyframe deduplication, Tesseract OCR with confidence and boxes, and visual units from Gemini or Vultr vision models (falls back to OCR-only units). |
-| Seen versus said | Each visual unit is scored against speech in a ±5 s window; unsaid content is ranked first. |
-| Spoken references | "This", "here", "the blue line" linked to regions, or flagged as ambiguous. |
-| Evidence ledger | Every description links to unit → frame/region → OCR lines → slide → transcript → checks → review decisions. |
-| Verification | Quotes and numbers checked against OCR and slide text: verified text match, corroborated, uncertain or needs review. |
-| Scheduling | Greedy and CP-SAT solvers on identical inputs, compared and validated; extended mode with a pause budget. |
-| Voice | Piper TTS (local), with measured clip length, up to 3 re-scheduling rounds, and a recorded reason for anything skipped. |
-| Review | Approve, edit, reject or regenerate next to the evidence. Edits are re-verified; decisions survive regeneration. |
-| Player | Accessible player in standard or extended mode, with voice or `aria-live` screen-reader text and a synced transcript. |
-| Exports | WebVTT, described MP4, extended MP4, WAV clips, HTML transcript, coverage report (HTML/JSON) and a hashed manifest, also bundled as a zip. |
-| Operations | Per-job run time, CPU, memory and hosted-model calls on the Status page; security headers, rate limits and write-request guard. |
+| Area              | What works today                                                                                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Upload            | Content-checked video upload (ffprobe, not file extensions), up to 500 MB and 30 minutes, rights confirmation, optional PDF/PPTX slide deck.                                     |
+| Processing        | 14 queued pipeline stages with live progress, cancel and retry, crash recovery, and automatic deletion after 24 hours.                                                           |
+| Hearing           | Local faster-whisper (`small.en`) transcript with word timings; speech windows derived from word gaps.                                                                           |
+| Seeing            | Slide-change detection with keyframe deduplication, Tesseract OCR with confidence and boxes, and visual units from Gemini or Vultr vision models (falls back to OCR-only units). |
+| Seen versus said  | Each visual unit is scored against speech in a ±5 s window; unsaid content is ranked first.                                                                                      |
+| Spoken references | "This", "here", "the blue line" linked to regions, or flagged as ambiguous.                                                                                                      |
+| Evidence ledger   | Every description links to unit → frame/region → OCR lines → slide → transcript → checks → review decisions.                                                                     |
+| Verification      | Quotes and numbers checked against OCR and slide text: verified text match, corroborated, uncertain or needs review.                                                             |
+| Scheduling        | Greedy and CP-SAT solvers on identical inputs, compared and validated; extended mode with a pause budget.                                                                        |
+| Voice             | Piper TTS (local), with measured clip length, up to 3 re-scheduling rounds, and a recorded reason for anything skipped.                                                          |
+| Review            | Approve, edit, reject or regenerate next to the evidence. Edits are re-verified; decisions survive regeneration.                                                                 |
+| Player            | Accessible player in standard or extended mode, with voice or `aria-live` screen-reader text and a synced transcript.                                                            |
+| Exports           | WebVTT, described MP4, extended MP4, WAV clips, HTML transcript, coverage report (HTML/JSON) and a hashed manifest, also bundled as a zip.                                       |
+| Operations        | Per-job run time, CPU, memory and hosted-model calls on the Status page; security headers, rate limits and write-request guard.                                                  |
 
 ## 6. Screenshots
 
 All screenshots come from the production Docker build, processing the demo lecture made by [`seehere.bench.demo`](backend/src/seehere/bench/demo.py). The evidence ledger screenshot uses the Gemini vision run; the others use OCR-only mode.
 
-| | |
-|---|---|
-| <img src="docs/assets/screenshots/home.png" alt="Landing page with the tagline and four feature cards"> **Landing page** | <img src="docs/assets/screenshots/upload.png" alt="Upload form with file picker, lecture title and rights confirmation"> **Upload** |
-| <img src="docs/assets/screenshots/processing.png" alt="Processing page with every stage marked done and six keyframes"> **Processing: stages and keyframes** | <img src="docs/assets/screenshots/schedule.png" alt="Schedule timeline with descriptions placed in speech pauses, each with an audio player"> **Schedule: CP-SAT placement and voice clips** |
-| <img src="docs/assets/screenshots/evidence-ledger.png" alt="Evidence ledger for a bar chart: keyframe with outlined region, verified quotes, corroborated statements and transcript"> **Evidence ledger and review** | <img src="docs/assets/screenshots/status.png" alt="Status page with service health and measured stage timings"> **Status: health and measured performance** |
+|                                                                                                                                                                                                                      |                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/assets/screenshots/home.png" alt="Landing page with the tagline and four feature cards"> **Landing page**                                                                                             | <img src="docs/assets/screenshots/upload.png" alt="Upload form with file picker, lecture title and rights confirmation"> **Upload**                                                          |
+| <img src="docs/assets/screenshots/processing.png" alt="Processing page with every stage marked done and six keyframes"> **Processing: stages and keyframes**                                                         | <img src="docs/assets/screenshots/schedule.png" alt="Schedule timeline with descriptions placed in speech pauses, each with an audio player"> **Schedule: CP-SAT placement and voice clips** |
+| <img src="docs/assets/screenshots/evidence-ledger.png" alt="Evidence ledger for a bar chart: keyframe with outlined region, verified quotes, corroborated statements and transcript"> **Evidence ledger and review** | <img src="docs/assets/screenshots/status.png" alt="Status page with service health and measured stage timings"> **Status: health and measured performance**                                  |
 
 ## 7. System architecture
 
@@ -94,20 +99,20 @@ All screenshots come from the production Docker build, processing the demo lectu
 
 ## 8. Technology stack
 
-| Layer | Technology | Why |
-|---|---|---|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS, Radix UI | Server-rendered, accessible primitives |
-| Backend | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic | Typed API and migrations |
-| Queue and data | PostgreSQL 16 (`SKIP LOCKED` queue, JSONB metrics) | One stateful service to run and back up |
-| Speech-to-text | faster-whisper `small.en`, int8 on CPU | Word timings for gaps and pointer phrases |
-| Vision | Gemini (`gemini-3.5-flash-lite`) via its OpenAI-compatible API, or Vultr Serverless Inference; schema-validated JSON | Visual units with regions |
-| OCR | Tesseract 5.5 (TSV with boxes and confidence) | Text evidence for verification |
-| Slides | pypdf, guarded in-memory PPTX parsing (defusedxml) | Optional ground-truth text |
-| Scheduling | Google OR-Tools CP-SAT, plus a greedy baseline | Optimal placement in speech gaps |
-| Voice | Piper (`en_US-ljspeech-medium`), run as a subprocess | Local and free; real clip lengths |
-| Media | ffmpeg / ffprobe | Normalization, frames, described and extended videos |
-| Delivery | Docker Compose, Caddy 2 (automatic HTTPS), Vultr Cloud Compute | Simple, reproducible, single VM |
-| Quality | pytest, ruff, mypy (strict), vitest, axe-core, ESLint | 647 backend tests and 128 web tests |
+| Layer          | Technology                                                                                                           | Why                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Frontend       | Next.js 16, React 19, TypeScript, Tailwind CSS, Radix UI                                                             | Server-rendered, accessible primitives               |
+| Backend        | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic                                                                | Typed API and migrations                             |
+| Queue and data | PostgreSQL 16 (`SKIP LOCKED` queue, JSONB metrics)                                                                   | One stateful service to run and back up              |
+| Speech-to-text | faster-whisper `small.en`, int8 on CPU                                                                               | Word timings for gaps and pointer phrases            |
+| Vision | Vultr Serverless Inference (`qwen3.8-flash-next`), or Gemini (`gemini-3.5-flash-lite`); both OpenAI-compatible, schema-validated JSON | Visual units with regions |
+| OCR            | Tesseract 5.5 (TSV with boxes and confidence)                                                                        | Text evidence for verification                       |
+| Slides         | pypdf, guarded in-memory PPTX parsing (defusedxml)                                                                   | Optional ground-truth text                           |
+| Scheduling     | Google OR-Tools CP-SAT, plus a greedy baseline                                                                       | Optimal placement in speech gaps                     |
+| Voice          | Piper (`en_US-ljspeech-medium`), run as a subprocess                                                                 | Local and free; real clip lengths                    |
+| Media          | ffmpeg / ffprobe                                                                                                     | Normalization, frames, described and extended videos |
+| Delivery       | Docker Compose, Caddy 2 (automatic HTTPS), Vultr Cloud Compute                                                       | Simple, reproducible, single VM                      |
+| Quality | pytest, ruff, mypy (strict), vitest, axe-core, ESLint | 648 backend tests and 128 web tests |
 
 ## 9. Multimodal pipeline
 
@@ -123,16 +128,16 @@ The vision model receives one keyframe and a JSON Schema and must return visual 
 
 Every description cue stores `evidence` rows that point to the visual unit, the keyframe and region, each OCR line inside that region, the aligned slide page and the transcript spans. `claims.verify` extracts every quote, number and statement from all three wordings (short, medium, long) and checks each one:
 
-| State | Meaning |
-|---|---|
-| **Verified text match** | The quoted text or number was found as written in OCR (line confidence ≥ 0.6) or in the slide deck. |
-| **Corroborated** | A descriptive statement backed only by the vision model's view of the keyframe. |
-| **Uncertain** | Found only in a low-confidence OCR line, or after repairing letters OCR reads in place of digits (for example `1O0` → `100`). |
-| **Needs review** | Not found in any evidence. The cue is held from the schedule until an instructor approves it. |
+| State                   | Meaning                                                                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Verified text match** | The quoted text or number was found as written in OCR (line confidence ≥ 0.6) or in the slide deck.                           |
+| **Corroborated**        | A descriptive statement backed only by the vision model's view of the keyframe.                                               |
+| **Uncertain**           | Found only in a low-confidence OCR line, or after repairing letters OCR reads in place of digits (for example `1O0` → `100`). |
+| **Needs review**        | Not found in any evidence. The cue is held from the schedule until an instructor approves it.                                 |
 
 A cue takes the weakest state of its claims. The ledger is shown in the UI (screenshot above) and shipped in `manifest.json` with SHA-256 hashes of every exported file.
 
-> **A real example from the demo.** In the Gemini run, the vision model correctly read the equation as `6CO2 + 6H2O → C6H12O6 + 6O2`. OCR had read it as `6CO2 + 6BH20 -> C6H1206 + 602`. The quote did not match the OCR text, so the cue was **held for review** rather than voiced. That is the intended behaviour: a disagreement between two readings goes to a person.
+> **A real example from the demo.** In both the Vultr and the Gemini runs, the vision model correctly read the equation as `6CO2 + 6H2O → C6H12O6 + 6O2`. OCR had read it as `6CO2 + 6BH20 -> C6H1206 + 602`. The quote did not match the OCR text, so the cue was **held for review** rather than voiced. That is the intended behaviour: a disagreement between two readings goes to a person.
 
 ## 11. Constraint scheduling
 
@@ -152,6 +157,7 @@ CP-SAT is selected when its plan is valid and at least as good on priority. Both
 ![Deployment on Vultr](docs/assets/vultr-deployment.svg)
 
 SeeHere runs on one **Vultr Cloud Compute** instance (Ubuntu 24.04) with Docker Compose:
+
 - **Caddy** handles HTTPS with automatic Let's Encrypt certificates on `<ip>.sslip.io`, plus HSTS and HTTP/3.
 - The **web**, **api** and **worker** containers run the application.
 - A one-shot **migrate** container runs Alembic.
@@ -162,17 +168,19 @@ Data lives on named volumes. Only ports 22, 80 and 443 are open.
 Provisioning is one paste: [`deploy/cloud-init.yaml`](deploy/cloud-init.yaml) runs [`deploy/bootstrap.sh`](deploy/bootstrap.sh) on first boot. It installs Docker, sets up the firewall and swap, generates secrets and starts the stack. Updates, rollback and backups are each one script. The full guide is [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 **How Vultr is used:**
-- **Cloud Compute** hosts the whole product: frontend, backend, worker and database.
-- **Vultr Serverless Inference** is integrated as an alternative vision and text-to-speech provider (`VISION_PROVIDER=vultr`, `TTS_PROVIDER=vultr`), using an OpenAI-compatible client with schema validation, error classification and metering.
 
-The live demo uses Gemini for vision because the team's Serverless Inference subscription key was not available during the build. The Vultr inference adapters are covered by mocked tests and opt-in live tests (`SEEHERE_LIVE_VULTR_VISION=1`).
+- **Cloud Compute** hosts the whole product: frontend, backend, worker and database.
+- **Vultr Serverless Inference** is the vision model (`VISION_PROVIDER=vultr`, `qwen3.8-flash-next`). It reads each keyframe and returns schema-validated visual units. The client classifies errors, retries outages and meters every call.
+- Vultr text-to-speech and speech-to-text adapters are also built and pass live tests. The demo keeps the local Piper voice and Whisper, which have no per-request cost.
+
+Gemini is supported as an alternative vision provider through the same OpenAI-compatible client.
 
 ## 13. Sample workflow
 
 ![Product workflow](docs/assets/product-workflow.svg)
 
 1. **Upload:** open `/upload`, choose a lecture video (and optionally its slides), enter a title and confirm you have the rights.
-2. **Process:** the Processing page shows each stage live. The 96-second demo lecture was ready in 25.5 s with Gemini vision; a 10-minute lecture took 59 s.
+2. **Process:** the Processing page shows each stage live. The 96-second demo lecture was ready in 26.5 s with Vultr vision; a 10-minute lecture took 59 s.
 3. **Review:** on the Processing page, each description shows its verification state. Open **Show evidence** to see the keyframe region, OCR text, slide text and transcript, then approve, edit, reject or regenerate. Held cues are never voiced until approved.
 4. **Listen:** the Results page plays the lecture with descriptions in standard or extended mode, as a voice or as screen-reader text, with a synced transcript.
 5. **Export:** download the WebVTT track, the described or extended MP4, the audio clips, the transcript, the report or everything as a zip.
@@ -198,23 +206,23 @@ The first run of the worker downloads the Whisper `small.en` model and the Piper
 
 ## 15. Environment variables
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `DATABASE_URL` | local Postgres on :5433 | SQLAlchemy URL |
-| `MEDIA_DIR` | `./var/media` | Uploads, frames, audio, exports |
-| `MEDIA_RETENTION_HOURS` | `24` | Projects and files are deleted after this |
-| `MAX_UPLOAD_MB` / `MAX_VIDEO_DURATION_S` | `500` / `1800` | Upload limits |
-| `API_CORS_ORIGINS` | `http://localhost:3000` | Web origin allowed to call the API |
-| `VISION_PROVIDER` | `none` | `none` (OCR only), `gemini` or `vultr` |
-| `GEMINI_API_KEY` / `GEMINI_VISION_MODEL` | empty / `gemini-3.5-flash-lite` | Gemini vision |
-| `VULTR_INFERENCE_API_KEY` | empty | A **Serverless Inference** key, not the account API key |
-| `VULTR_VISION_MODEL` / `VULTR_TTS_MODEL` / `VULTR_STT_MODEL` | see `.env.example` | Vultr models |
-| `TTS_PROVIDER` | `piper` | `piper` (local) or `vultr` |
-| `LOCAL_STT_MODEL` | `small.en` | faster-whisper model |
-| `EXTENDED_PAUSE_BUDGET_PCT` / `SOLVER_TIME_LIMIT_S` | see `.env.example` | Scheduling limits |
-| `VULTR_PRICE_PER_*_USD` | unset | Unit prices; a dollar estimate appears only when they are set |
-| `SMALLEST_API_KEY` | empty | Reserved; only reported by the health check |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Browser API base (empty in production: same origin) |
+| Variable                                                     | Default                         | Purpose                                                       |
+| ------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------- |
+| `DATABASE_URL`                                               | local Postgres on :5433         | SQLAlchemy URL                                                |
+| `MEDIA_DIR`                                                  | `./var/media`                   | Uploads, frames, audio, exports                               |
+| `MEDIA_RETENTION_HOURS`                                      | `24`                            | Projects and files are deleted after this                     |
+| `MAX_UPLOAD_MB` / `MAX_VIDEO_DURATION_S`                     | `500` / `1800`                  | Upload limits                                                 |
+| `API_CORS_ORIGINS`                                           | `http://localhost:3000`         | Web origin allowed to call the API                            |
+| `VISION_PROVIDER` | `none` | `none` (OCR only), `vultr` (used by the live demo) or `gemini` |
+| `GEMINI_API_KEY` / `GEMINI_VISION_MODEL`                     | empty / `gemini-3.5-flash-lite` | Gemini vision                                                 |
+| `VULTR_INFERENCE_API_KEY`                                    | empty                           | A **Serverless Inference** key, not the account API key       |
+| `VULTR_VISION_MODEL` / `VULTR_TTS_MODEL` / `VULTR_STT_MODEL` | see `.env.example`              | Vultr models                                                  |
+| `TTS_PROVIDER`                                               | `piper`                         | `piper` (local) or `vultr`                                    |
+| `LOCAL_STT_MODEL`                                            | `small.en`                      | faster-whisper model                                          |
+| `EXTENDED_PAUSE_BUDGET_PCT` / `SOLVER_TIME_LIMIT_S`          | see `.env.example`              | Scheduling limits                                             |
+| `VULTR_PRICE_PER_*_USD`                                      | unset                           | Unit prices; a dollar estimate appears only when they are set |
+| `SMALLEST_API_KEY`                                           | empty                           | Reserved; only reported by the health check                   |
+| `NEXT_PUBLIC_API_BASE_URL`                                   | `http://localhost:8000`         | Browser API base (empty in production: same origin)           |
 
 The production template is [`deploy/.env.prod.example`](deploy/.env.prod.example). `.env` files are git-ignored.
 
@@ -233,20 +241,20 @@ With `SEEHERE_DOMAIN=localhost`, Caddy serves `https://localhost` with a certifi
 
 OpenAPI docs are at `/api/docs`. Writes require `X-SeeHere-Request: 1`.
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/projects` | Upload a lecture. Raw body, with headers `X-SeeHere-Title`, `X-SeeHere-Filename` and `X-SeeHere-Rights-Confirmed` |
-| `GET` | `/api/projects`, `/api/projects/{id}` | List and read projects |
-| `GET` | `/api/projects/{id}/jobs` | Stage status and progress · `POST /api/jobs/{id}/cancel`, `/retry` |
-| `POST/GET` | `/api/projects/{id}/deck` | Optional slide deck |
-| `GET` | `/api/projects/{id}/transcript`, `/ocr`, `/media`, `/visuals`, `/references` | Evidence by stage |
-| `GET` | `/api/projects/{id}/cues`, `/api/cues/{id}/evidence` | Descriptions and their ledger |
-| `POST` | `/api/cues/{id}/review` | `approve`, `reject`, `edit` or `regenerate` |
-| `GET` | `/api/projects/{id}/schedule`, `/api/audio/{clip}` | Schedules and voice clips |
-| `GET` | `/api/projects/{id}/exports`, `/api/exports/{id}` | Export files |
-| `GET` | `/api/projects/{id}/report` | Coverage and verification report |
-| `GET` | `/api/metrics`, `/api/projects/{id}/metrics` | Measured performance and provider calls |
-| `GET` | `/api/health`, `/api/health/live` | Health of the database, media tools and providers |
+| Method     | Path                                                                         | Purpose                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `POST`     | `/api/projects`                                                              | Upload a lecture. Raw body, with headers `X-SeeHere-Title`, `X-SeeHere-Filename` and `X-SeeHere-Rights-Confirmed` |
+| `GET`      | `/api/projects`, `/api/projects/{id}`                                        | List and read projects                                                                                            |
+| `GET`      | `/api/projects/{id}/jobs`                                                    | Stage status and progress · `POST /api/jobs/{id}/cancel`, `/retry`                                                |
+| `POST/GET` | `/api/projects/{id}/deck`                                                    | Optional slide deck                                                                                               |
+| `GET`      | `/api/projects/{id}/transcript`, `/ocr`, `/media`, `/visuals`, `/references` | Evidence by stage                                                                                                 |
+| `GET`      | `/api/projects/{id}/cues`, `/api/cues/{id}/evidence`                         | Descriptions and their ledger                                                                                     |
+| `POST`     | `/api/cues/{id}/review`                                                      | `approve`, `reject`, `edit` or `regenerate`                                                                       |
+| `GET`      | `/api/projects/{id}/schedule`, `/api/audio/{clip}`                           | Schedules and voice clips                                                                                         |
+| `GET`      | `/api/projects/{id}/exports`, `/api/exports/{id}`                            | Export files                                                                                                      |
+| `GET`      | `/api/projects/{id}/report`                                                  | Coverage and verification report                                                                                  |
+| `GET`      | `/api/metrics`, `/api/projects/{id}/metrics`                                 | Measured performance and provider calls                                                                           |
+| `GET`      | `/api/health`, `/api/health/live`                                            | Health of the database, media tools and providers                                                                 |
 
 ```bash
 curl -X POST https://<host>/api/projects \
@@ -261,7 +269,7 @@ curl -X POST https://<host>/api/projects \
 make check          # ruff + format check, mypy (strict), pytest, ESLint, tsc, vitest
 ```
 
-There are 647 backend tests (4 skipped: the opt-in live provider tests) and 128 web tests, including axe-core accessibility checks on components. The test suite pins `VISION_PROVIDER=none` and `TTS_PROVIDER=piper`, so it never spends hosted-model credit. Live provider checks are opt-in:
+There are 648 backend tests (plus 4 opt-in live provider tests, skipped by default) and 128 web tests, including axe-core accessibility checks on components. The test suite pins `VISION_PROVIDER=none` and `TTS_PROVIDER=piper`, so it never spends hosted-model credit. Live provider checks are opt-in:
 
 ```bash
 cd backend && set -a && source ../.env && set +a
@@ -273,33 +281,37 @@ SEEHERE_LIVE_VULTR_VISION=1  uv run pytest tests/test_vision.py -k live
 
 All numbers below are **OBSERVED**. They come from runs recorded by `python -m seehere.bench.perf run`, which uploads through the live API and worker, on an Apple-silicon laptop. The raw files are in [`bench/results/`](bench/results/).
 
-| Lecture | Length | Upload → ready | Processing per lecture-second | Vision |
-|---|---|---|---|---|
-| Photosynthesis demo (6 slides) | 1:36 | **25.5 s** | 0.24 s | Gemini: 7 calls, 0 failed, 10,911 prompt and 1,966 completion tokens |
-| Narrated test lecture, 8 slides | 2:00 | 33.6 s | 0.26 s | OCR only |
-| Narrated test lecture, 40 slides | 10:00 | **58.7 s** | 0.10 s | OCR only |
-| Narrated test lecture, 120 slides | 30:00 | **156.9 s** | 0.09 s | OCR only |
+| Lecture                           | Length | Upload → ready | Processing per lecture-second | Vision                                                               |
+| --------------------------------- | ------ | -------------- | ----------------------------- | -------------------------------------------------------------------- |
+| Photosynthesis demo (6 slides) | 1:36 | **26.5 s** | 0.26 s | **Vultr** `qwen3.8-flash-next`: 6 calls, 0 failed, 6,678 prompt and 3,836 completion tokens |
+| Photosynthesis demo (6 slides) | 1:36 | 25.5 s | 0.24 s | Gemini `gemini-3.5-flash-lite`: 7 calls, 0 failed, 10,911 prompt and 1,966 completion tokens |
+| Narrated test lecture, 8 slides   | 2:00   | 33.6 s         | 0.26 s                        | OCR only                                                             |
+| Narrated test lecture, 40 slides  | 10:00  | **58.7 s**     | 0.10 s                        | OCR only                                                             |
+| Narrated test lecture, 120 slides | 30:00  | **156.9 s**    | 0.09 s                        | OCR only                                                             |
 
-On the demo lecture with Gemini, 13 visual units were found and 10 were described. 2 units were already said aloud. 1 description was held for review: the equation, where OCR and the vision model disagreed. The worker's peak memory was about 1.7 GB, during speech-to-text on the 30-minute lecture, which sets the server size.
+Both vision models gave the same verdicts on the demo lecture. With Vultr, 14 visual units were found, 9 were described in standard mode and 1 more in extended mode, and 3 had already been said aloud. With Gemini, 13 units were found and 10 described. Each held exactly 1 description for review: the equation, where OCR and the vision model disagreed. The worker's peak memory was about 1.7 GB, during speech-to-text on the 30-minute lecture, which sets the server size.
 
 **Quality benchmark** ([`bench/README.md`](bench/README.md)). The annotated format `seehere-bench/1` scores visual recall, fact recall, seconds spoken over speech, pause time and unsupported numbers. It compares greedy, CP-SAT, extended and instructor-reviewed output, and every row is labelled OBSERVED, SIMULATED or UNAVAILABLE.
+
 - The included item is one short synthetic smoke test, not evidence of general quality.
 - The Microsoft ai-audio-descriptions baseline is pinned with a run script but **UNAVAILABLE**: it needs a paid Azure resource, which was not provisioned.
 
 ## 20. Deployment and public demo
 
-**Live demo:** *being deployed to Vultr. The URL will be added here once the public HTTPS endpoints have been tested.*
+**Live demo:** _being deployed to Vultr. The URL will be added here once the public HTTPS endpoints have been tested._
 
 The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for sizing, first boot, settings, updates, rollback and cost control.
 
 **Costs:**
+
 - **Hosting:** the only fixed cost is the instance (recommended 4 vCPU / 8 GB, billed hourly). Check the console for current regional pricing.
 - **Per lecture:** speech-to-text, OCR, scheduling and voice are local, so a lecture costs nothing per request unless a hosted vision model is enabled.
-- **Hosted vision:** one request per keyframe. The demo lecture used 7 requests and about 12.9k tokens in total. The Status page and `GET /api/metrics` record every call; dollar figures appear only when a unit price is configured, so no price is guessed.
+- **Hosted vision:** one request per keyframe. With Vultr, the demo lecture used 6 requests and about 10.5k tokens in total; this is billed against the Serverless Inference subscription. The Status page and `GET /api/metrics` record every call; dollar figures appear only when a unit price is configured, so no price is guessed.
 
 ## 21. Security, privacy and accessibility
 
 **Security**
+
 - HTTPS only, with HSTS.
 - Every write needs the app's own request header, which a cross-site form cannot send without a CORS preflight.
 - Per-client rate limits for uploads, writes and reads.
@@ -309,12 +321,14 @@ The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs
 - Containers run as non-root users.
 
 **Privacy**
+
 - Videos and everything derived from them are deleted after 24 hours by default.
 - Logs hold IDs, job kinds and HTTP codes, never transcript, description or prompt text.
 - Provider metering stores counts only.
 - Upload requires confirming the rights to process the video.
 
 **Accessibility**
+
 - Semantic HTML, with keyboard operation throughout and visible focus.
 - The player offers voice or `aria-live` text, never both at once, so it does not double-speak with a screen reader.
 - axe-core checks run in the component tests.
@@ -330,13 +344,12 @@ The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs
 - **Lecture-style video.** It works best with slides, charts and diagrams. Demonstrations, handwriting and live action are described poorly.
 - **One server.** Rate limits are in memory and the worker runs one job at a time. This suits a demo and small courses, not a university-wide rollout.
 - **Short clips may be skipped.** In standard mode, a description that does not fit any pause after 3 rounds is skipped and reported. Extended mode is the remedy.
-- **Vultr inference is not live-verified.** The adapters are tested with mocks only, because no Serverless Inference key was available during the build.
 - **No real-user study yet.** We have not run sessions with blind or low-vision students, so we make no claims about learning outcomes.
 
 ## 23. Future improvements
 
 - Run sessions with blind and low-vision students and instructors, and publish the findings.
-- Enable Vultr Serverless Inference as the default vision provider, and compare it with Gemini on the benchmark.
+- Compare the Vultr and Gemini vision models on a larger annotated benchmark.
 - Use multilingual speech-to-text and voices.
 - Integrate with LMS platforms (LTI), with a WebVTT description track directly in Canvas or Moodle players.
 - Track pointer and laser movement for better resolution of "this" and "here".
@@ -345,21 +358,22 @@ The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs
 
 ## 24. Project documentation
 
-| Document | Contents |
-|---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Every stage, table and endpoint in detail |
-| [docs/ARCHITECTURE_DECISIONS.md](docs/ARCHITECTURE_DECISIONS.md) | ADRs (queue in Postgres, local STT, CP-SAT selection, …) |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vultr deployment and operations |
-| [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Tokens, components, verification states, accessibility checks |
-| [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) and [docs/TASK_LOG.md](docs/TASK_LOG.md) | The 35 build tasks and what was tested |
-| [docs/VULTR_RESEARCH_AND_ARCHITECTURE.md](docs/VULTR_RESEARCH_AND_ARCHITECTURE.md) | Vultr services considered and why |
-| [docs/DEPENDENCIES_AND_LICENSES.md](docs/DEPENDENCIES_AND_LICENSES.md) | Third-party licenses |
+| Document                                                                                    | Contents                                                      |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                                                | Every stage, table and endpoint in detail                     |
+| [docs/ARCHITECTURE_DECISIONS.md](docs/ARCHITECTURE_DECISIONS.md)                            | ADRs (queue in Postgres, local STT, CP-SAT selection, …)      |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                                                    | Vultr deployment and operations                               |
+| [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)                                              | Tokens, components, verification states, accessibility checks |
+| [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) and [docs/TASK_LOG.md](docs/TASK_LOG.md) | The 35 build tasks and what was tested                        |
+| [docs/VULTR_RESEARCH_AND_ARCHITECTURE.md](docs/VULTR_RESEARCH_AND_ARCHITECTURE.md)          | Vultr services considered and why                             |
+| [docs/DEPENDENCIES_AND_LICENSES.md](docs/DEPENDENCIES_AND_LICENSES.md)                      | Third-party licenses                                          |
 
 ## 25. License and acknowledgements
 
 **License:** not yet chosen; until a `LICENSE` file is added, all rights are reserved. Piper (GPL-3.0) is invoked as a separate program and is not linked into SeeHere. Third-party licenses are listed in [docs/DEPENDENCIES_AND_LICENSES.md](docs/DEPENDENCIES_AND_LICENSES.md).
 
 **Built with:**
+
 - [Vultr](https://www.vultr.com/) Cloud Compute and Serverless Inference
 - [Google Gemini](https://ai.google.dev/)
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper)

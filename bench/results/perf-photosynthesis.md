@@ -1,4 +1,4 @@
-# Performance run: photosynthesis.mp4
+# Performance run: photosynthesis.mp4 (Gemini vision, gemini-3.5-flash-lite)
 
 All figures OBSERVED on Darwin arm64, Python 3.12.12 at 2026-11-14T10:46:15+00:00 (project status: ready).
 

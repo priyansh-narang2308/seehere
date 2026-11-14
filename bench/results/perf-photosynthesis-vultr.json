@@ -1,0 +1,172 @@
+{
+  "project_id": "ad090c2b-ed3a-43dd-9be0-4e177557aa1d",
+  "status": "ready",
+  "measured_at": "2026-11-14T11:06:29+00:00",
+  "machine": "Darwin arm64, Python 3.12.12",
+  "video": "photosynthesis.mp4",
+  "upload_s": 0.169,
+  "upload_to_ready_s": 26.549,
+  "video_duration_s": 96.0,
+  "processing_s": 25.269,
+  "elapsed_s": 25.642,
+  "processing_per_video_s": 0.263,
+  "stages": [
+    {
+      "job_id": "1cd96787-7456-4383-a4cc-85edfed0aafd",
+      "kind": "media.prepare",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.453,
+      "cpu_s": 0.037,
+      "child_cpu_s": 1.093,
+      "peak_rss_mb": 193.594,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "20745aa3-4dc7-4d1e-ae21-5995679b8943",
+      "kind": "scenes.detect",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.105,
+      "cpu_s": 0.066,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 941.172,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "c1c9f705-a6ea-4bc6-a769-8a966f7a939d",
+      "kind": "speech.transcribe",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 4.884,
+      "cpu_s": 13.026,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 937.938,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "e9b2c932-f570-4e8e-a8bf-e590a76e66d2",
+      "kind": "ocr.extract",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 1.079,
+      "cpu_s": 0.195,
+      "child_cpu_s": 0.807,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "f256f85c-334f-46e8-9a5f-c9130da8d43a",
+      "kind": "visual.analyze",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 7.169,
+      "cpu_s": 0.206,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 6
+    },
+    {
+      "job_id": "e803e912-f8bf-4628-b1d8-8e93100bf91c",
+      "kind": "coverage.score",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.098,
+      "cpu_s": 0.017,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "8feee7bb-8297-4f46-9380-c5c455778770",
+      "kind": "references.resolve",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.019,
+      "cpu_s": 0.005,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "3080e34b-31e1-4e3a-bc0d-9e6e4ce88db0",
+      "kind": "descriptions.generate",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.04,
+      "cpu_s": 0.015,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "df5aecfd-010e-4e3f-9eb5-6a0a6f2186ba",
+      "kind": "claims.verify",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.043,
+      "cpu_s": 0.016,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "85daa44c-c320-4740-aa18-89a5a7e5e3c7",
+      "kind": "schedule.plan",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.083,
+      "cpu_s": 0.029,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "7919cc36-5c20-49ea-a49f-6180ea4e2b28",
+      "kind": "speech.synthesize",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 9.546,
+      "cpu_s": 0.095,
+      "child_cpu_s": 16.524,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "f621ec65-783b-416a-a057-5e4ce3b2a43f",
+      "kind": "timing.check",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.046,
+      "cpu_s": 0.018,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "61429408-c824-44ae-a68a-72aea28eb5df",
+      "kind": "export.build",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 1.704,
+      "cpu_s": 0.198,
+      "child_cpu_s": 5.513,
+      "peak_rss_mb": 944.078,
+      "provider_calls": 0
+    }
+  ],
+  "providers": [
+    {
+      "operation": "vision",
+      "calls": 6,
+      "failed": 0,
+      "units": {
+        "completion_tokens": 3836.0,
+        "prompt_tokens": 6678.0
+      },
+      "mean_latency_ms": 3831,
+      "estimated_cost_usd": null
+    }
+  ],
+  "prices_configured": false
+}
