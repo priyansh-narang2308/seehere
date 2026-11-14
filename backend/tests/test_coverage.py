@@ -24,6 +24,7 @@ from seehere.db.session import get_db
 from seehere.vision.coverage import (
     JOB_KIND,
     content_words,
+    join_words,
     queue_coverage,
     score_unit,
     spoken_numbers,
@@ -39,6 +40,12 @@ UNITS_CHAIN = ("media.prepare", "scenes.detect", "ocr.extract", "visual.analyze"
 def test_spoken_numbers_as_digits_and_words() -> None:
     said = spoken_numbers("revenue rose twelve point five percent to 3.2 million, up from 2,021")
     assert said == [Decimal("3.2") * 10**6, Decimal(2021), Decimal("12.5")]
+
+
+def test_numbers_split_across_transcript_words_are_rejoined() -> None:
+    text = join_words(["revenue", "rose", "12", ".5%.", "to", "3", ",200", "units"])
+    assert text == "revenue rose 12.5%. to 3,200 units"
+    assert score_unit(VisualKind.CHART, "Rose 12.5%", text).coverage == 1.0
 
 
 def test_content_words_skip_stop_words_and_fold_plurals() -> None:

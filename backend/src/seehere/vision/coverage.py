@@ -32,6 +32,8 @@ log = logging.getLogger("seehere.coverage")
 JOB_KIND = "coverage.score"
 NUMBER_WEIGHT = 2
 MAX_NUMBER_WORDS = 8
+# "three point two million": words_to_number stops at the decimal, so apply the scale here
+_SCALE_WORDS = {"thousand": 10**3, "million": 10**6, "billion": 10**9, "trillion": 10**12}
 
 KIND_WEIGHT = {
     VisualKind.CHART: 1.0,
@@ -64,6 +66,15 @@ def content_words(text: str) -> set[str]:
     return {_stem(w) for w in _WORD.findall(text.lower()) if len(w) >= 3 and w not in _STOP}
 
 
+_SPLIT_NUMBER = re.compile(r"(\d) (?=[.,]\d|%)")
+
+
+def join_words(words: list[str]) -> str:
+    """Transcript words to text. Speech-to-text may split one number across words
+    ("12", ".5%"), so those pieces are joined back together."""
+    return _SPLIT_NUMBER.sub(r"\1", " ".join(words))
+
+
 def spoken_numbers(text: str) -> list[Decimal]:
     """Values said as digits ("12.5") or as words ("twelve point five")."""
     values = [m.value for m in extract_numbers(text)]
@@ -74,6 +85,9 @@ def spoken_numbers(text: str) -> list[Decimal]:
         for j in range(min(len(words), i + MAX_NUMBER_WORDS), i, -1):
             value = words_to_number(" ".join(words[i:j]))
             if value is not None:
+                if j < len(words) and words[j] in _SCALE_WORDS:
+                    value *= _SCALE_WORDS[words[j]]
+                    j += 1
                 values.append(value)
                 i = j
                 break
@@ -152,7 +166,7 @@ def score_coverage(ctx: JobContext, job: ClaimedJob) -> None:
         for n, unit in enumerate(units):
             ctx.progress("compare", n / len(units))
             lo, hi = unit.t_start_s - pad, unit.t_end_s + pad
-            spoken = " ".join(w.text for w in words if lo <= w.start_s <= hi)
+            spoken = join_words([w.text for w in words if lo <= w.start_s <= hi])
             score = score_unit(unit.kind, _unit_text(unit), spoken)
             unit.coverage_score = score.coverage
             unit.priority = score.priority
