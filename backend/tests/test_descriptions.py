@@ -1,0 +1,159 @@
+"""Description cues and their evidence ledger, end to end on a rendered lecture video:
+units -> seen versus said -> spoken references -> cues -> GET /api/cues/{id}/evidence."""
+
+from __future__ import annotations
+
+import uuid
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from pipeline_project import add_project, run_jobs, say
+from slide_images import make_deck_video
+from sqlalchemy.orm import Session, sessionmaker
+
+from seehere.api.main import app
+from seehere.core.config import Settings, get_settings
+from seehere.db.enums import VisualKind
+from seehere.db.session import get_db
+from seehere.describe.generate import write_wordings
+from seehere.text.numbers import extract_numbers
+
+Sessions = sessionmaker[Session]
+UNITS_CHAIN = ("media.prepare", "scenes.detect", "ocr.extract", "visual.analyze")
+TEXT_CHAIN = ("coverage.score", "references.resolve", "descriptions.generate")
+
+
+# --- wordings ---
+
+
+def test_text_on_screen_is_quoted_as_read() -> None:
+    w = write_wordings(VisualKind.TEXT_BLOCK, "Revenue rose 12.5%", ["Revenue rose 12.5%"], "")
+    assert w == type(w)("On screen: “Revenue rose 12.5%”.", None, None)
+    two = write_wordings(VisualKind.TEXT_BLOCK, "Next steps", ["Next steps", "Hire 3 by March"], "")
+    assert two.short == "On screen: “Next steps”."
+    assert two.medium == "On screen: “Next steps”. “Hire 3 by March”."
+    assert two.long is None  # nothing more to say
+
+
+def test_chart_wordings_grow_from_label_to_details_and_text() -> None:
+    w = write_wordings(
+        VisualKind.CHART,
+        "Bar chart of revenue by quarter",
+        ["Q1", "Q2", "Q3", "Q4", "$3.2M"],
+        "Four bars rising from Q1 to Q4.",
+    )
+    assert w.short == "Chart: Bar chart of revenue by quarter."
+    assert w.medium == f"{w.short} “Q1”. “Q2”."
+    assert w.long == f"{w.short} Four bars rising from Q1 to Q4. “Q1”. “Q2”. “Q3”. “Q4”. “$3.2M”."
+
+
+def test_long_lines_are_cut_at_a_word() -> None:
+    line = " ".join(f"w{i}" for i in range(30))
+    assert write_wordings(VisualKind.TEXT_BLOCK, line, [line], "").short.endswith("w14…”.")
+
+
+# --- job and ledger ---
+
+
+@pytest.fixture(scope="module")
+def deck(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return make_deck_video(tmp_path_factory.mktemp("describe"))
+
+
+@pytest.fixture
+def settings(tmp_path: Path) -> Settings:
+    return Settings(media_dir=tmp_path / "media", job_heartbeat_interval_s=0.2)
+
+
+@pytest.fixture
+def client(sessions: Sessions, settings: Settings) -> Iterator[TestClient]:
+    def db() -> Iterator[Session]:
+        with sessions() as s:
+            yield s
+
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_db] = db
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+SPEECH = (
+    "this quarter revenue rose twelve point five percent "
+    "look at this number here forty one point seven percent"
+)
+
+
+def test_cues_carry_their_full_evidence(
+    client: TestClient, sessions: Sessions, settings: Settings, deck: Path
+) -> None:
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, UNITS_CHAIN)
+    assert client.get(f"/api/projects/{pid}/cues").json() == {"available": False, "cues": []}
+    say(sessions, pid, [(0.5 + 0.3 * i, w) for i, w in enumerate(SPEECH.split())])
+    run_jobs(sessions, settings, TEXT_CHAIN)
+
+    # "this number here" + "forty one point seven percent" -> the margin line
+    refs = client.get(f"/api/projects/{pid}/references").json()["references"]
+    assert [(r["phrase"], r["status"], r["label"]) for r in refs] == [
+        ("this number here", "linked", "Operating margin 41.7% in 2022")
+    ]
+
+    body = client.get(f"/api/projects/{pid}/cues").json()
+    cues = {c["text_short"]: c for c in body["cues"]}
+    # slide 1's revisit is not described twice; every cue starts as needs review
+    assert set(cues) == {
+        "On screen: “Quarterly Revenue”.",
+        "On screen: “Revenue rose 12.5% to $3.2M”.",
+        "On screen: “Operating margin 41.7% in 2022”.",
+        "On screen: “Next steps”.",
+        "On screen: “Hire 3 engineers by March”.",
+    }
+    assert {c["verification_state"] for c in body["cues"]} == {"needs_review"}
+    margin = cues["On screen: “Operating margin 41.7% in 2022”."]
+    assert margin["anchor_t_s"] == pytest.approx(refs[0]["t_s"])  # anchored where it was pointed at
+    assert cues["On screen: “Next steps”."]["anchor_t_s"] == 5.0
+
+    ledger = client.get(f"/api/cues/{margin['id']}/evidence").json()
+    kinds = [e["kind"] for e in ledger["evidence"]]
+    assert kinds == ["frame", "ocr_region", "transcript_span", "transcript_span", "visual_unit"]
+    by_kind = {e["kind"]: e for e in ledger["evidence"]}
+    assert by_kind["frame"]["frame"]["t_s"] == 0.0
+    assert client.get(by_kind["frame"]["frame"]["image_url"]).status_code == 200
+    assert by_kind["ocr_region"]["ocr_region"]["text"] == "Operating margin 41.7% in 2022"
+    spans = {e["note"]: e["transcript"]["text"] for e in ledger["evidence"] if e["transcript"]}
+    assert spans["spoken reference: this number here"] == "this number here"
+    assert spans["speech while shown"].startswith("this quarter revenue")
+    unit = by_kind["visual_unit"]["visual_unit"]
+    assert (unit["label"], unit["t_start_s"], unit["t_end_s"]) == (
+        "Operating margin 41.7% in 2022",
+        0.0,
+        5.0,
+    )
+    assert ledger["checks"] == []  # claim verification is Task 17
+
+    # No value in any wording that is not in the cue's own evidence.
+    for c in body["cues"]:
+        ev = client.get(f"/api/cues/{c['id']}/evidence").json()["evidence"]
+        shown = " ".join(e["ocr_region"]["text"] for e in ev if e["ocr_region"])
+        allowed = {n.raw for n in extract_numbers(shown)}
+        for text in (c["text_short"], c["text_medium"], c["text_long"]):
+            assert {n.raw for n in extract_numbers(text or "")} <= allowed
+
+    assert client.get(f"/api/cues/{uuid.uuid4()}/evidence").status_code == 404
+    assert client.get(f"/api/projects/{uuid.uuid4()}/cues").status_code == 404
+
+
+def test_silent_lecture_still_gets_descriptions(
+    client: TestClient, sessions: Sessions, settings: Settings, deck: Path
+) -> None:
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, ("speech.transcribe", *UNITS_CHAIN, *TEXT_CHAIN))
+    body: dict[str, Any] = client.get(f"/api/projects/{pid}/cues").json()
+    # The deck video's audio is a tone: no words, so everything on screen is unsaid.
+    assert body["available"] and len(body["cues"]) == 5
+    refs = client.get(f"/api/projects/{pid}/references").json()
+    assert refs == {"available": True, "references": []}

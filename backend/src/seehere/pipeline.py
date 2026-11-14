@@ -9,9 +9,11 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from seehere.describe import generate
 from seehere.jobs import queue
 from seehere.jobs.worker import Handler
 from seehere.media import normalize, ocr, scenes
+from seehere.references import resolve
 from seehere.slides import ingest
 from seehere.speech import transcribe
 from seehere.vision import coverage, units
@@ -24,6 +26,8 @@ HANDLERS: dict[str, Handler] = {
     ingest.JOB_KIND: ingest.ingest_deck,
     units.JOB_KIND: units.analyze_visuals,
     coverage.JOB_KIND: coverage.score_coverage,
+    resolve.JOB_KIND: resolve.resolve_references,
+    generate.JOB_KIND: generate.generate_descriptions,
 }
 
 # What each job kind is called in the UI.
@@ -35,6 +39,8 @@ JOB_LABELS = {
     ingest.JOB_KIND: "Slide deck",
     units.JOB_KIND: "Visual analysis",
     coverage.JOB_KIND: "Seen versus said",
+    resolve.JOB_KIND: "Visual references",
+    generate.JOB_KIND: "Descriptions",
 }
 
 
