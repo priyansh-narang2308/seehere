@@ -1,0 +1,100 @@
+# SeeHere production stack (Task 34). One VM: Caddy (HTTPS) → web (Next.js) and api (FastAPI);
+# a worker process for the pipeline; Postgres for data and the job queue (ADR-005).
+#
+#   cd deploy && cp .env.prod.example .env && edit .env
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only Caddy publishes ports. Data lives in named volumes (pg, media, caddy_data).
+name: seehere-prod  # distinct from the dev compose project (docker-compose.dev.yml)
+
+x-backend: &backend
+  image: seehere-backend:${SEEHERE_VERSION:-latest}
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+psycopg://seehere:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@db:5432/seehere
+    APP_ENV: production
+    MEDIA_DIR: /data/media
+    TRUST_PROXY_HEADERS: "true"
+    API_CORS_ORIGINS: https://${SEEHERE_DOMAIN:?set SEEHERE_DOMAIN in deploy/.env}
+  volumes:
+    - media:/data/media
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: seehere
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: seehere
+    volumes:
+      - pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seehere -d seehere"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:
+    <<: *backend
+    build: ../backend
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    <<: *backend
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "seehere.jobs.worker"]
+    healthcheck:
+      disable: true
+    stop_grace_period: 90s # SIGTERM finishes the current job first
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    image: seehere-web:${SEEHERE_VERSION:-latest}
+    build:
+      context: ../web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ""
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      api: { condition: service_healthy }
+
+  caddy:
+    image: caddy:2.10-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SEEHERE_DOMAIN: ${SEEHERE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
+
+volumes:
+  pg: {}
+  media: {}
+  caddy_data: {}
+  caddy_config: {}
