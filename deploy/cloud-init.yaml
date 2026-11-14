@@ -1,0 +1,10 @@
+#cloud-config
+# Vultr "Cloud-Init User-Data" for a fresh Ubuntu 24.04 instance (Task 34).
+# Paste this into the instance's user data when deploying. On first boot it clones SeeHere and
+# runs deploy/bootstrap.sh: Docker, firewall, swap, settings, HTTPS on <ip>.sslip.io.
+# Progress: ssh root@<ip> 'tail -f /var/log/seehere-bootstrap.log'
+package_update: true
+packages: [git, curl]
+runcmd:
+  - git clone --depth 50 https://github.com/priyansh-narang2308/seehere.git /opt/seehere
+  - bash /opt/seehere/deploy/bootstrap.sh > /var/log/seehere-bootstrap.log 2>&1
