@@ -594,3 +594,39 @@
 
 ### Follow-up: Piper as a separate process (2026-11-14)
 - `piper-tts` was removed from the project's dependencies. It is installed with `uv tool install` (`make tts-voice`) and run as a subprocess, with the text on stdin and output to a temporary file that is measured and then moved into place. A timeout, a non-zero exit or a missing binary/voice each give a clear job error. A test asserts the module is never imported.
+
+## Tasks 23–25: Timing check, export, accessible player (2026-11-14) ✅
+
+### Implemented
+- **Task 23, `timing.check`:** after synthesis, every placement is checked against its clip's measured length.
+  - A clip longer than its slot (or with no audio) triggers a rebuild of all schedules, using measured lengths wherever audio exists, and new wordings are synthesized. This is limited to 3 rounds in all.
+  - In the last round, placements that still do not fit are removed, logged and listed as skipped with the reason. The scheduling job was refactored into `build_schedules`, so the first plan, and any re-run, already uses existing clips.
+- **Task 24, `export.build`:** seven files, recorded as `export_artifact` rows with SHA-256 hashes; `GET /api/projects/{id}/exports` and `GET /api/exports/{id}` serve them (downloads; HTML is never served inline).
+  - WebVTT description tracks (standard and extended).
+  - Cue audio, also as a zip.
+  - A standard MP4: the video stream is copied and the lecture audio is lowered to 30% under each description.
+  - An extended MP4: the frame is held for each pause, then re-encoded.
+  - An accessible HTML transcript (escaped, `lang`, time-ordered, with a "not voiced" section).
+  - A JSON manifest: each description with its checks, evidence, timing and file hashes, plus the notice that this is not a WCAG certification and not complete fact-checking.
+  - A bundle zip of all of the above.
+- **Task 25, player (Results page):**
+  - Plays the lecture (range-request streaming) with descriptions at their times, once per pass. Seeking resets which ones count as heard.
+  - Standard mode lowers the lecture under each description; extended mode holds the frame.
+  - Output is the voice or `aria-live` screen-reader text, never both. Descriptions can be switched off.
+  - A synced transcript (speech plus descriptions) uses buttons that seek and `aria-current` on the line being heard.
+  - Downloads are listed with plain-language names.
+- **Fix found live:** browsers pause animation frames in background tabs, so descriptions never started. The player now also checks on `timeupdate`, and an exact timer schedules extended-mode holds.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_export.py` | Timing rule; pause mapping; WebVTT (escapes `-->`, extended shift); transcript escaping and order; filter graphs; **real ffmpeg renders have the planned length** (pause mid-video and at 0 s) |
+| `test_descriptions.py` end to end | Timing converges and every clip fits its slot; all 7 exports; VTT cue count; manifest notice/evidence/checks; video `Range` → 206 |
+| Web | `playback.test.ts`, player (voice + lowering, once per pass, extended hold, text instead of voice, off, transcript seek, `timeupdate`), Results view; axe clean |
+| Backend / Web | **597 passed, 3 skipped** / **124 passed**; `make check` and `next build` pass |
+| Live (pointers demo) | 13/13 jobs succeeded; round 1 had 3 misfits (estimates), round 2 fits; both MP4s 15.0 s (no extended pauses within budget); in the browser the clip played at 11.09 s with the lecture at 30% volume, pane hidden |
+
+### Known limitations
+- The extended MP4 is re-encoded (libx264). It is fast for short lectures but slower for long ones.
+- The player's extended mode pauses the original video live. The rendered extended MP4 is the file to publish.
+- Not a WCAG conformance claim: the player was checked with axe and keyboard semantics, not with real screen-reader user testing.

@@ -42,9 +42,9 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 20 | CP-SAT scheduler | P0 | ✅ | Model as documented; explanations and infeasibility reasons; compared with greedy on the same inputs |
 | 21 | Extended pause planning | P1 | ✅ | Budgeted pauses with a stored reason per pause; extended timeline plan |
 | 22 | TTS integration | P0 | 🟡 | Vultr TTS adapter TESTED; Piper fallback; real audio files |
-| 23 | Post-synthesis timing validation | P0 | ⏳ | Measured durations; re-solve ≤3 rounds; invalid cues rejected and logged |
-| 24 | Export and media composition | P0 | ⏳ | WebVTT, cue audio, standard MP4 (ducked), extended MP4, accessible transcript, manifest, zip |
-| 25 | Accessible video player | P0 | ⏳ | Plays AD audio at cue times (Web Audio/HTMLAudio sync), toggles, synced transcript, keyboard + screen reader; no duplicate descriptions |
+| 23 | Post-synthesis timing validation | P0 | ✅ | Measured durations; re-solve ≤3 rounds; invalid cues rejected and logged |
+| 24 | Export and media composition | P0 | ✅ | WebVTT, cue audio, standard MP4 (ducked), extended MP4, accessible transcript, manifest, zip |
+| 25 | Accessible video player | P0 | ✅ | Plays AD audio at cue times (Web Audio/HTMLAudio sync), toggles, synced transcript, keyboard + screen reader; no duplicate descriptions |
 | 26 | Instructor edit/approve workflow | P1 | ⏳ | Edit, approve, reject, regenerate; edits re-verified + re-scheduled |
 | 27 | Evidence ledger UI | P0 | ⏳ | Frame with region overlay, OCR, slide text, transcript span, verification state per cue |
 | 28 | Uncovered-content and verification report | P1 | ⏳ | Described / skipped / uncovered / review / corroborated / uncertain / timing results |
