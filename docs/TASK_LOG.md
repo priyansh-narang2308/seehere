@@ -763,3 +763,11 @@ README rewritten (25 sections), five SVG diagrams in `docs/assets/`, screenshots
 - With the Serverless Inference subscription key, the opt-in live tests pass for vision (`qwen3.8-flash-next` read "12.5%" from the test chart), text-to-speech and speech-to-text.
 - OBSERVED, demo lecture with `VISION_PROVIDER=vultr`: 6 vision calls, 0 failed, 6,678 prompt and 3,836 completion tokens; upload to ready in 26.5 s (`bench/results/perf-photosynthesis-vultr.md`). Same verdicts as Gemini: only the equation (OCR misread) held for review.
 - The live demo uses Vultr vision. Piper and Whisper stay local for voice and speech-to-text (no per-request cost).
+
+## Task 34: Public Vultr deployment (2026-11-14) ✅
+
+- Instance: Vultr Cloud Compute vc2-4c-8gb, Mumbai, Ubuntu 24.04, backups off. Created by the owner in the console.
+- Bootstrap via `deploy/bootstrap.sh`; Caddy obtained a Let's Encrypt certificate for `65-20-87-43.sslip.io`.
+- Hardening: a dedicated deploy SSH key, password login off, ufw 22/80/443 only. Ports 5432 and 8000 are confirmed closed from outside.
+- Checks (observed): every page 200, `/api/health` all ok, HSTS on, HTTP→HTTPS 308, writes without the app header 403.
+- Demo lecture uploaded on the public site: ready in 50 s, 6 Vultr vision calls / 0 failed, 11 descriptions (1 held), 9 exports. The results-page video plays in the browser with no console errors.

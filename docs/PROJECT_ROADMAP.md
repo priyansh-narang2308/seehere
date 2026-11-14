@@ -53,8 +53,8 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 31 | End-to-end and failure testing | P0 | ✅ | Full flow + invalid/malformed/provider-failure/interrupted-job cases |
 | 32 | Security, privacy and a11y audit | P1 | 🟡 | Endpoint review, rate limits, retention job, axe + manual SR pass, fixes. Done except the screen-reader pass: keyboard and accessibility-tree checks only |
 | 33 | Performance, monitoring, cost | P2 | ✅ | Measured stage timings, resource use, API spend; limits re-tuned |
-| 34 | Production packaging and Vultr deploy | P0 | 🟡 | Dockerfiles, prod Compose, Caddy HTTPS, health checks, volumes, cloud-init bootstrap, deploy/rollback/backup scripts ✅, verified as a full local prod stack over HTTPS; **public Vultr instance awaits the owner's approval of plan and cost** |
-| 35 | Release, competition package, demo | P0 | 🟡 | README, 5 SVG diagrams, production screenshots, deployment guide, measured results ✅; public URL, demo video, reach evidence and the Vultr Community submission pending |
+| 34 | Production packaging and Vultr deploy | P0 | ✅ | Dockerfiles, prod Compose, Caddy HTTPS, health checks, volumes, cloud-init bootstrap, deploy/rollback/backup scripts ✅, verified as a full local prod stack over HTTPS; live on Vultr at https://65-20-87-43.sslip.io (demo ready in 50 s, observed) |
+| 35 | Release, competition package, demo | P0 | 🟡 | README, 5 SVG diagrams, production screenshots, deployment guide, measured results, public URL https://65-20-87-43.sslip.io ✅; demo video, reach evidence and the Vultr Community submission pending |
 
 ## Flagship demo clip (self-recorded; built during Tasks 07–14)
 Contains:

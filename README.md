@@ -296,7 +296,9 @@ Both vision models gave the same verdicts on the demo lecture. With Vultr, 14 vi
 
 ## 20. Deployment and public demo
 
-**Live demo:** _being deployed to Vultr. The URL will be added here once the public HTTPS endpoints have been tested._
+**Live demo:** https://65-20-87-43.sslip.io (Vultr Cloud Compute, Mumbai, 4 vCPU / 8 GB, HTTPS via Caddy + Let's Encrypt).
+
+Observed on the live server (2026-11-14): the demo lecture went from upload to ready in 50 s, with 6 Vultr Serverless Inference vision calls (0 failed), 11 descriptions (1 held for review) and all 9 exports built. `/api/health` reports every component ok. Uploaded media is deleted after 24 hours.
 
 The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for sizing, first boot, settings, updates, rollback and cost control.
 
