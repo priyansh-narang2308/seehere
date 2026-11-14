@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     scene_change_fraction: float = 0.02
     scene_pixel_delta: int = 24
 
+    # --- on-screen text (Task 10) ---
+    ocr_language: str = "eng"
+    ocr_timeout_s: float = 60.0
+    # Lines whose mean word confidence is below this are treated as noise and not stored.
+    ocr_min_confidence: float = 0.3
+
     # --- Vultr Serverless Inference (OpenAI-compatible) ---
     vultr_inference_base_url: str = "https://api.vultrinference.com/v1"
     vultr_inference_api_key: SecretStr | None = None

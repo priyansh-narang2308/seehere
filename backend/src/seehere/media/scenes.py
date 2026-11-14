@@ -36,6 +36,7 @@ from seehere.jobs import queue
 from seehere.jobs.errors import PermanentJobError
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
+from seehere.media.ocr import queue_ocr
 
 log = logging.getLogger("seehere.scenes")
 
@@ -156,6 +157,7 @@ def detect_scene_changes(ctx: JobContext, job: ClaimedJob) -> None:
                     phash=dhash(thumbs[pos]),
                 )
             )
+        queue_ocr(s, job.project_id)  # keyframes changed: read their text again
         s.commit()
     log.info(
         "project %s: %d frames, %d keyframes, %d revisits",

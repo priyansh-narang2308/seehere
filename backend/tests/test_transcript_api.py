@@ -89,6 +89,7 @@ def test_transcript_round_trip(
         "Media preparation",
         "Speech-to-text",
         "Scene and slide changes",
+        "On-screen text",
     ]
 
 

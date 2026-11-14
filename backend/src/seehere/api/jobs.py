@@ -90,7 +90,10 @@ def _project_or_404(db: Session, project_id: uuid.UUID) -> None:
 @router.get("/projects/{project_id}/jobs", response_model=JobList)
 def list_jobs(project_id: uuid.UUID, db: DbDep) -> JobList:
     _project_or_404(db, project_id)
-    jobs = db.scalars(select(Job).where(Job.project_id == project_id).order_by(Job.created_at))
+    rows = db.scalars(select(Job).where(Job.project_id == project_id))
+    # Jobs queued in one transaction share created_at, so ties follow the pipeline's order.
+    order = {kind: i for i, kind in enumerate(JOB_LABELS)}
+    jobs = sorted(rows, key=lambda j: (j.created_at, order.get(j.kind, len(order)), j.kind))
     return JobList(
         now=db.execute(select(func.now())).scalar_one(), jobs=[JobOut.from_model(j) for j in jobs]
     )
