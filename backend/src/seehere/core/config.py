@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     frame_sample_fps: float = 1.0
     frame_max_width: int = 1280
 
+    # --- scene and slide changes (Task 09) ---
+    # A new keyframe needs this share of thumbnail pixels to change by more than the delta.
+    scene_change_fraction: float = 0.02
+    scene_pixel_delta: int = 24
+
     # --- Vultr Serverless Inference (OpenAI-compatible) ---
     vultr_inference_base_url: str = "https://api.vultrinference.com/v1"
     vultr_inference_api_key: SecretStr | None = None
