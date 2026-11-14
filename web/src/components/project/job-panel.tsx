@@ -355,7 +355,7 @@ function PreparedOutputs({ media }: { media: PreparedMedia }) {
         </ul>
       )}
       <p className="text-xs text-muted">
-        These are the inputs for visual analysis, which is not built yet.
+        Keyframes are where on-screen text and visual content are read.
       </p>
     </div>
   );

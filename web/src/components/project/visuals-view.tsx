@@ -37,7 +37,7 @@ export function VisualsView({ visuals }: { visuals: Visuals }) {
                 </span>
                 <div className="min-w-0 space-y-1">
                   <p className="text-ink">
-                    <span className="mr-1.5 rounded bg-sunken px-1.5 py-0.5 text-xs text-ink-2">{KIND[u.kind]}</span>
+                    <span className="rounded bg-sunken px-1.5 py-0.5 text-xs text-ink-2">{KIND[u.kind]}</span>{" "}
                     {u.label}
                   </p>
                   {u.coverage !== null && (
