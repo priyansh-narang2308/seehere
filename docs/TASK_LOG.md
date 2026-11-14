@@ -549,3 +549,21 @@
 ### Known limitations
 - Template wording: accurate, but plain ("On screen: …"). No language model rewrites it yet.
 - Regenerating replaces all cues; preserving instructor edits comes with Task 26.
+
+## Tasks 17–19: Claim verification, speech windows, greedy scheduler (2026-11-14) ✅
+
+### Implemented
+- **Task 17 `claims.verify`:** each cue's quotes, numbers and statements are checked against that cue's own OCR lines and slide text. A quote must match at least half an OCR line (unless truncated). A number must match in value and unit (12.5 is not 12.5%). A low-confidence line or a match only after OCR digit repair gives **uncertain**. A statement passes only as **corroborated**, and only if a vision model saw the frame. The cue takes its weakest result, and every check is stored and shown in the evidence panel (Found / Not found / Unclear).
+- **Task 18 windows:** pauses between words minus 0.15 s on each side, kept if at least 0.8 s long. There is no padding at the video's edges, and a silent lecture is one window. Speaking time is estimated before TTS, with a number counting as three words.
+- **Task 19 `schedule.greedy`:** cues are taken by priority, then time, then id. Each gets the longest wording (long → medium → short) at the earliest free moment between its anchor and 1 s after its visual leaves. Cues that fit nowhere are recorded with a reason. Needs-review cues are held back. An independent validator must report zero violations before placements are stored. `GET /api/projects/{id}/schedule`; the web shows a timeline plus lists of scheduled and not-voiced descriptions.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_verify.py`, `test_schedule.py` | States per claim type; padding, overlap, priority, relevance; **200 random lectures: zero overlap, deterministic, order-independent** |
+| Backend / Web | **456 passed, 2 skipped** / **114 passed** |
+| Live (pointers demo) | All 10 jobs succeeded; 5/5 cues verified_text_match; 1 window (11.09–15 s); "Next steps" placed 11.09–12.93; others skipped with reasons (the speaker talks continuously while they are shown); scheduled in 0.04 ms |
+
+### Known limitations
+- Standard mode only: a lecture that talks over every slide leaves most descriptions unvoiced. Extended mode (pausing the video) comes later.
+- Durations are estimates until TTS (Task 23). Greedy is not optimal; CP-SAT (Task 20) is the comparison.

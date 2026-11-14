@@ -120,7 +120,7 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 ## On-screen text (Task 10)
 - Job `ocr.extract` after `scenes.detect`, on keyframes only. Tesseract TSV is grouped into lines → `ocr_region` (text as read, confidence 0–1, box as fractions of the frame). Served by `GET /api/projects/{id}/ocr`.
 - `seehere.text.numbers` normalizes numbers from OCR and speech for later comparison; stored evidence is never rewritten.
-- Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract` → `visual.analyze`) → `coverage.score` (queued by both branches) → `references.resolve` → `descriptions.generate`.
+- Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract` → `visual.analyze`) → `coverage.score` (queued by both branches) → `references.resolve` → `descriptions.generate` → `claims.verify` → `schedule.greedy`.
 
 ## Slide decks (Task 11)
 - `POST/GET /api/projects/{id}/deck`. Job `deck.ingest` reads pages (pypdf, or in-memory PPTX with zip-bomb, path and XML guards) into `slide` rows, aligned to keyframes by text similarity with OCR. OCR re-queues it.
@@ -134,6 +134,8 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 ## References, cues and the evidence ledger (Tasks 14-16)
 - `references.resolve`: spoken pointers → `reference_link` (linked ≥ 0.5 confidence, else ambiguous with no unit, or unresolved). `GET /api/projects/{id}/references`.
 - `descriptions.generate`: one `description_cue` per not-fully-said unit (first appearance), short/medium/long wordings built only from unit fields, plus `evidence` rows (unit, frame, OCR lines in its box, aligned slide, reference spans, speech while shown).
+- `claims.verify`: extracts quotes, numbers and statements from each cue's wordings and checks them against that cue's OCR lines and slide text; writes `verification_event` rows and sets the cue to its weakest result (quotes/numbers found → verified_text_match; low-confidence or digit-fixed match → uncertain; statement seen by a vision model → corroborated; anything unsupported → needs_review).
+- `schedule.greedy`: speech windows = word gaps minus 0.15 s padding (≥0.8 s); cues by priority, longest wording that fits, from anchor to the visual leaving + 1 s; an independent validator rejects any overlap with speech or another cue. Needs-review cues are held back. Stored as a `schedule_run` with metrics and `schedule_placement` rows.
 - `GET /api/projects/{id}/cues`, `GET /api/cues/{id}/evidence` (every row resolved to its source, plus verification checks).
 - Shared matching helpers: `text/words.py` (distinctive words, spoken numbers, rejoining split numbers).
 

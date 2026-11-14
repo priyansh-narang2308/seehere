@@ -36,9 +36,9 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 14 | Visual reference resolution | P0 | ✅ | Deictic phrase detection; region linking with confidence; below threshold → NEEDS REVIEW; ambiguous case in demo clip flagged, not guessed |
 | 15 | Evidence ledger backend | P0 | ✅ | Full lineage query for any cue; API `GET /api/cues/{id}/evidence` |
 | 16 | Description generation | P0 | ✅ | S/M/L variants from unit fields; no values absent from evidence (checked by 17) |
-| 17 | Claim verification | P0 | ⏳ | Four states implemented; quote/number checks against OCR + slides; unsupported numbers downgrade the cue |
-| 18 | Speech windows and timing analysis | P0 | ⏳ | Gap detection with padding from word timings; windows per unit |
-| 19 | Greedy scheduler | P0 | ⏳ | Deterministic; documented rules; validator confirms zero overlap |
+| 17 | Claim verification | P0 | ✅ | Four states implemented; quote/number checks against OCR + slides; unsupported numbers downgrade the cue |
+| 18 | Speech windows and timing analysis | P0 | ✅ | Gap detection with padding from word timings; windows per unit |
+| 19 | Greedy scheduler | P0 | ✅ | Deterministic; documented rules; validator confirms zero overlap |
 | 20 | CP-SAT scheduler | P0 | ⏳ | Model as documented; explanations and infeasibility reasons; compared with greedy on the same inputs |
 | 21 | Extended pause planning | P1 | ⏳ | Budgeted pauses with a stored reason per pause; extended timeline plan |
 | 22 | TTS integration | P0 | ⏳ | Vultr TTS adapter TESTED; Piper fallback; real audio files |
