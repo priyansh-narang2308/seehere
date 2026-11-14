@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from seehere.jobs import queue
 from seehere.jobs.worker import Handler
 from seehere.media import normalize, ocr, scenes
+from seehere.slides import ingest
 from seehere.speech import transcribe
 
 HANDLERS: dict[str, Handler] = {
@@ -19,6 +20,7 @@ HANDLERS: dict[str, Handler] = {
     transcribe.JOB_KIND: transcribe.transcribe_speech,
     scenes.JOB_KIND: scenes.detect_scene_changes,
     ocr.JOB_KIND: ocr.extract_text,
+    ingest.JOB_KIND: ingest.ingest_deck,
 }
 
 # What each job kind is called in the UI.
@@ -27,6 +29,7 @@ JOB_LABELS = {
     transcribe.JOB_KIND: "Speech-to-text",
     scenes.JOB_KIND: "Scene and slide changes",
     ocr.JOB_KIND: "On-screen text",
+    ingest.JOB_KIND: "Slide deck",
 }
 
 

@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     # Lines whose mean word confidence is below this are treated as noise and not stored.
     ocr_min_confidence: float = 0.3
 
+    # --- slide decks (Task 11) ---
+    max_deck_mb: int = 50
+    # Minimum text similarity (Dice, 0..1) between a page and a keyframe's OCR text to align them.
+    slide_align_threshold: float = 0.4
+
+    @property
+    def max_deck_bytes(self) -> int:
+        return self.max_deck_mb * 1024 * 1024
+
     # --- Vultr Serverless Inference (OpenAI-compatible) ---
     vultr_inference_base_url: str = "https://api.vultrinference.com/v1"
     vultr_inference_api_key: SecretStr | None = None

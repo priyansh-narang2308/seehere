@@ -5,12 +5,14 @@ description = "SeeHere backend: evidence-grounded audio descriptions for lecture
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
+    "defusedxml>=0.7",
     "fastapi>=0.115",
     "faster-whisper>=1.1",
     "httpx>=0.28.1",
     "pillow>=11",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2",
+    "pypdf>=5",
     "sqlalchemy>=2",
     "uvicorn[standard]>=0.54.0",
 ]
@@ -28,6 +30,7 @@ dev = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
     "ruff>=0.17.5",
+    "types-defusedxml>=0.7.0.20260504",
 ]
 
 [tool.ruff]
