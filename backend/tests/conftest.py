@@ -95,6 +95,15 @@ def sessions(migrated_engine: Engine) -> Iterator[sessionmaker[Session]]:
 
 
 @pytest.fixture(autouse=True)
+def _local_providers_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never call a hosted model because of the developer's `.env`. Environment variables
+    override `.env`, so these pin every pipeline provider to the local one. Live tests opt in by
+    building their own Settings explicitly."""
+    monkeypatch.setenv("VISION_PROVIDER", "none")
+    monkeypatch.setenv("TTS_PROVIDER", "piper")
+
+
+@pytest.fixture(autouse=True)
 def _fresh_rate_limits() -> Iterator[None]:
     """Each test starts with empty rate-limit counters (the app object is shared)."""
     from seehere.api.main import app

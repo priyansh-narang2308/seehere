@@ -9,8 +9,10 @@ frame, and if the model fails validation twice the frame keeps its OCR blocks.
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -21,7 +23,7 @@ from seehere.core.config import Settings
 from seehere.db.enums import MediaKind, VisualKind
 from seehere.db.models import Frame, MediaAsset, OcrRegion, VisualUnit
 from seehere.jobs import queue
-from seehere.jobs.errors import PermanentJobError
+from seehere.jobs.errors import PermanentJobError, RetryableJobError
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.providers.errors import job_error
@@ -100,16 +102,67 @@ def units_from_model(reply: dict[str, Any], source: str) -> list[Unit]:
     return out
 
 
+VISION_SERVICE = {"vultr": "The Vultr vision model", "gemini": "The Gemini vision model"}
+
+
 def make_analyzer(settings: Settings) -> VultrVisionAnalyzer | None:
-    """The vision model, only when explicitly enabled (each call costs credit)."""
-    if settings.vision_provider != "vultr" or settings.vultr_inference_api_key is None:
-        return None
-    return VultrVisionAnalyzer(
-        settings.vultr_inference_api_key,
-        base_url=settings.vultr_inference_base_url,
-        model=settings.vultr_vision_model,
-        timeout_s=settings.vultr_vision_timeout_s,
-    )
+    """The vision model, only when explicitly enabled (each call costs credit or quota)."""
+    if settings.vision_provider == "vultr" and settings.vultr_inference_api_key is not None:
+        return VultrVisionAnalyzer(
+            settings.vultr_inference_api_key,
+            base_url=settings.vultr_inference_base_url,
+            model=settings.vultr_vision_model,
+            timeout_s=settings.vultr_vision_timeout_s,
+        )
+    if settings.vision_provider == "gemini" and settings.gemini_api_key is not None:
+        return VultrVisionAnalyzer(
+            settings.gemini_api_key,
+            base_url=settings.gemini_base_url,
+            model=settings.gemini_vision_model,
+            timeout_s=settings.vultr_vision_timeout_s,
+            service="gemini",
+            schema_in_prompt=True,
+        )
+    return None
+
+
+def _ask_model(
+    ctx: JobContext, analyzer: VultrVisionAnalyzer, keyframes: list[_Keyframe]
+) -> dict[uuid.UUID, list[Unit]]:
+    """Ask the vision model about every keyframe, a few at a time. A keyframe whose reply is
+    invalid twice keeps its OCR blocks; any request failure stops the job (classified by
+    `job_error`). Each request runs in a copy of this context, so it is metered for this job."""
+    found: dict[uuid.UUID, list[Unit]] = {}
+    workers = max(1, min(ctx.settings.vision_concurrency, len(keyframes)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vision") as pool:
+        futures = {
+            pool.submit(
+                contextvars.copy_context().run,
+                analyzer.analyze,
+                ctx.store.resolve(kf.path),
+                PROMPT,
+                UNITS_SCHEMA,
+            ): kf
+            for kf in keyframes
+        }
+        try:
+            for done, future in enumerate(as_completed(futures), start=1):
+                kf = futures[future]
+                try:
+                    found[kf.id] = units_from_model(future.result(), analyzer.info().name)
+                except VisionOutputInvalid as exc:
+                    log.warning("frame %s: %s; keeping OCR blocks", kf.id, exc)
+                except VisionError as exc:
+                    log.warning("vision request failed on frame %s: %s", kf.id, exc)
+                    hint = "Check GEMINI_API_KEY" if analyzer.service == "gemini" else None
+                    raise job_error(
+                        exc, VISION_SERVICE.get(analyzer.service, "The vision model"), hint
+                    ) from None
+                ctx.progress("analyze", done / len(keyframes))
+        finally:
+            for future in futures:  # stop queued requests after a failure or cancellation
+                future.cancel()
+    return found
 
 
 def queue_visual_analysis(session: Session, project_id: uuid.UUID) -> None:
@@ -178,20 +231,23 @@ def analyze_visuals(ctx: JobContext, job: ClaimedJob) -> None:
         raise PermanentJobError("No keyframes were found. Run scene detection again.")
 
     analyzer = make_analyzer(ctx.settings)
-    results: list[tuple[_Keyframe, list[Unit]]] = []
-    for n, kf in enumerate(keyframes):
-        ctx.progress("analyze", n / len(keyframes))
-        units = group_text_blocks(kf.lines)
-        if analyzer is not None:
-            try:
-                reply = analyzer.analyze(ctx.store.resolve(kf.path), PROMPT, UNITS_SCHEMA)
-                units = units_from_model(reply, analyzer.info().name)
-            except VisionOutputInvalid as exc:
-                log.warning("frame %s: %s; keeping OCR blocks", kf.id, exc)
-            except VisionError as exc:
-                log.warning("vision request failed on frame %s: %s", kf.id, exc)
-                raise job_error(exc, "The Vultr vision model") from None
-        results.append((kf, units))
+    units_by_frame = {kf.id: group_text_blocks(kf.lines) for kf in keyframes}
+    if analyzer is not None:
+        try:
+            units_by_frame.update(_ask_model(ctx, analyzer, keyframes))
+        except RetryableJobError as exc:
+            if job.attempts < job.max_attempts:
+                raise  # try the model again after the backoff
+            # The model stayed unavailable (outage or quota) on the last attempt: keep the
+            # OCR units, which every later stage can work from, rather than fail the lecture.
+            # A rejected key is a PermanentJobError and still fails loudly.
+            log.warning(
+                "vision model unavailable after %d attempts (%s); OCR units kept",
+                job.attempts,
+                exc.message,
+            )
+            ctx.progress("ocr-only", 0.9)
+    results = [(kf, units_by_frame[kf.id]) for kf in keyframes]
 
     ctx.progress("save", 0.95)
     ctx.check_cancelled()

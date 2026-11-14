@@ -82,9 +82,11 @@ class Settings(BaseSettings):
     slide_align_threshold: float = 0.4
 
     # --- visual analysis and seen-versus-said (Tasks 12-13) ---
-    # "none": units come from OCR only. "vultr": also ask the vision model (costs credit).
-    vision_provider: Literal["none", "vultr"] = "none"
+    # "none": units come from OCR only. "vultr" or "gemini": also ask that vision model about
+    # each keyframe (each call costs credit or quota).
+    vision_provider: Literal["none", "vultr", "gemini"] = "none"
     vultr_vision_timeout_s: float = 90.0
+    vision_concurrency: int = Field(default=4, ge=1, le=16)  # keyframes analysed at once
     # Speech this many seconds before/after a unit is on screen counts as describing it.
     coverage_window_pad_s: float = 5.0
     # A spoken pointer is linked to a visual only at or above this confidence (Task 14).
@@ -103,6 +105,8 @@ class Settings(BaseSettings):
 
     # --- optional partner / fallback providers ---
     gemini_api_key: SecretStr | None = None
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
+    gemini_vision_model: str = "gemini-3.5-flash-lite"
     smallest_api_key: SecretStr | None = None
 
     # --- speech-to-text (Task 08): local faster-whisper, the only STT with word timings ---
