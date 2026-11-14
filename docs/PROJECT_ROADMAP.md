@@ -27,7 +27,7 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 05 | Secure upload system | P0 | ✅ | Streaming upload with size cap, ffprobe-based type check, rights confirmation required, safe filenames, path-traversal tests, progress UI |
 | 06 | Background jobs and orchestration | P0 | ✅ | Postgres SKIP LOCKED worker; states, progress, retries with backoff, cancellation, idempotency; tests for double-claim and crash recovery |
 | 07 | Media inspection and normalization | P0 | ✅ | ffprobe metadata stored; malformed input rejected; 16 kHz WAV + frame sampling produced; subprocess argv-only with timeouts |
-| 08 | Speech-to-text | P0 | ⏳ | faster-whisper adapter returns words with timings on a real clip; capability marked TESTED; Vultr Whisper adapter tested for text only (if key provided) |
+| 08 | Speech-to-text | P0 | ✅ | faster-whisper adapter returns words with timings on a real clip; capability marked TESTED; Vultr Whisper adapter tested for text only (if key provided) |
 | 09 | Scene and slide change detection | P0 | ⏳ | Keyframes with timestamps; dedupe; precision checked on the demo clip |
 | 10 | OCR and text evidence | P0 | ⏳ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |
 | 11 | Slide deck ingestion (PDF/PPTX) | P1 | ⏳ | PDF via PyMuPDF; PPTX via python-pptx with zip-bomb/path guards; slide↔keyframe alignment by text similarity |

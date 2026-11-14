@@ -108,6 +108,11 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source â
 | `GET /api/projects/{id}/media?preview=12` | Audio facts (rate, channels, duration, size); frame count, rate and range; up to 48 evenly spaced preview frames |
 | `GET /api/frames/{id}/image` | The JPEG (resolved inside the media root only), `nosniff`, private cache |
 
+## Speech-to-text (Task 08)
+- Job `speech.transcribe` runs after `media.prepare` (queued in the same commit as the audio). One row per project; new audio re-queues it.
+- Provider: local faster-whisper (`small.en`, int8, CPU) with word timestamps, the only TESTED STT (ADR-006). Vultr Whisper is an optional, untested text-only adapter.
+- Output: `transcript_segment` and `transcript_word` (seconds of the source, ordered, inside the audio), linked to the normalized audio asset, so they are deleted when it is replaced. Served by `GET /api/projects/{id}/transcript`.
+
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.
 2. **STT:** faster-whisper words with start/end/confidence, then sentences.

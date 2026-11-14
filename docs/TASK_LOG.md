@@ -331,3 +331,28 @@
 - Only the first audio track is used. A lecture with the speech on another track would need a choice in the UI.
 - ffprobe and ffmpeg confirm the streams decode. They don't judge audio quality: silence or music-only audio passes this stage and will show up in speech-to-text (Task 08).
 - Frame images are served by the API without authentication, like everything else in this build (no accounts yet). Paths can't be guessed (UUIDs), but this is only fit for local or demo use.
+
+## Task 08: Speech-to-text (2026-11-14) ✅
+
+### Implemented
+- **Local STT** (`providers/stt_faster_whisper.py`): faster-whisper `small.en`, int8 on CPU, word timestamps, VAD filter, `condition_on_previous_text=False`. Words are kept in time order and inside the audio; confidence is clamped to 0–1. The 16 kHz WAV is read directly (PyAV is not used: its current release breaks faster-whisper's decoder, and this keeps a second media decoder off user-derived files). The model is cached once per process. **TRANSCRIBE_TEXT and TRANSCRIBE_WORD_TIMESTAMPS: TESTED.**
+- **Vultr STT** (`providers/stt_vultr.py`): text only, OpenAI-style multipart request. **DOCUMENTED, not TESTED**: no live call made (it spends credit). The request shape is an assumption until an approved live test (`SEEHERE_LIVE_VULTR_STT=1`). Not used by the pipeline.
+- **Job `speech.transcribe`**, queued in the same transaction as media preparation's outputs. One job row per project (`enqueue_or_restart`): new audio re-queues it, and the old transcript is deleted with the old audio (FK cascade). Writes `transcript_segment` / `transcript_word` rows; metadata in the audio asset's `probe.transcript`. Model load failures are retried with a user-safe message (new `RetryableJobError`).
+- **API** `GET /api/projects/{id}/transcript`. **Web:** speech stage labels, a transcript list on the Processing page, stage 03 marked built (3 of 15).
+
+### Tests
+| Check | Result |
+|---|---|
+| Real speech (`tests/speech_clip.py`) | Two sentences from system TTS (macOS `say` / `espeak-ng`) joined by exactly 2.0 s of silence; the pause is located in the signal by energy as the independent reference |
+| `test_stt_faster_whisper.py` (8) | Expected words recognized; timings ordered and inside the audio; **"left" ends and "Sales" starts at the measured silence (±0.4 s)**, no word inside it; progress and stop; TESTED flags; English-only; WAV format refused; unloadable model reported |
+| `test_transcribe.py` (6), `test_transcript_api.py` (2) | Upload → prep → transcript rows in DB and over HTTP; re-run replaces; new audio re-queues the same job; missing audio fails permanently; model failure retried with message; cancel mid-recognition leaves no rows |
+| `test_stt_vultr.py` (5 + 1 skipped live) | Fake transport only: request shape, key never in errors, 25 MB limit, DOCUMENTED flags |
+| Backend / Web | **139 passed, 1 skipped** / **107 passed** |
+| Live | 8 s speech video uploaded → both jobs done in ~6 s → 16 words, 2 segments, transcript shown on the page |
+
+### Known limitations
+- `small.en` is English only. Other languages need a multilingual model (setting `LOCAL_STT_MODEL`).
+- Cancellation is checked between recognizer segments (about every 30 s of audio).
+- Whisper can mis-hear technical terms and occasionally invent text in music or noise; VAD reduces but does not remove this. The UI says machine transcription can contain errors.
+- The first run downloads the model (about 480 MB) from Hugging Face.
+
