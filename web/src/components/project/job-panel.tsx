@@ -17,7 +17,9 @@ import {
   type JobList,
   type JobStatus,
   type PreparedMedia,
+  type Transcript,
 } from "@/lib/api";
+import { TranscriptView } from "./transcript-view";
 
 const POLL_MS = 1000;
 /** After this long in the queue with no attempt yet, say that no worker seems to be running. */
@@ -36,6 +38,8 @@ const STAGES: Record<string, string> = {
   audio: "Extracting the audio track",
   frames: "Sampling frames",
   save: "Saving results",
+  model: "Loading the speech model",
+  transcribe: "Recognizing speech",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -45,6 +49,8 @@ const timeFormat = new Intl.DateTimeFormat("en-GB", { timeStyle: "medium" });
 export function JobPanel({ projectId }: { projectId: string }) {
   const [list, setList] = useState<JobList | null>(null);
   const [media, setMedia] = useState<PreparedMedia | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const transcriptLoadedFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -77,6 +83,18 @@ export function JobPanel({ projectId }: { projectId: string }) {
         if (!prepared) {
           mediaLoadedFor.current = null;
           setMedia(null);
+        }
+        const speech = next.jobs.find((j) => j.kind === "speech.transcribe" && j.status === "succeeded");
+        const speechKey = speech ? `${speech.id}:${speech.finished_at}` : null;
+        if (speechKey && transcriptLoadedFor.current !== speechKey) {
+          transcriptLoadedFor.current = speechKey;
+          getJson<Transcript>(`/api/projects/${projectId}/transcript`, { signal: controller.signal })
+            .then((t) => setTranscript(t.available ? t : null))
+            .catch(() => {});
+        }
+        if (!speech) {
+          transcriptLoadedFor.current = null;
+          setTranscript(null);
         }
         const active = next.jobs.some(isActive);
         if (active) timer = setTimeout(refresh, POLL_MS);
@@ -144,6 +162,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
         </ul>
       )}
       {media && <PreparedOutputs media={media} />}
+      {transcript && <TranscriptView transcript={transcript} />}
     </section>
   );
 }
@@ -276,7 +295,7 @@ function PreparedOutputs({ media }: { media: PreparedMedia }) {
         </ul>
       )}
       <p className="text-xs text-muted">
-        These are the inputs for the next stages (speech-to-text and visual analysis), which are not built yet.
+        These are the inputs for visual analysis, which is not built yet.
       </p>
     </div>
   );

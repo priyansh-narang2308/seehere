@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Job, JobList, PreparedMedia } from "@/lib/api";
+import type { Job, JobList, PreparedMedia, Transcript } from "@/lib/api";
 import { JobPanel } from "./job-panel";
 
 const refresh = vi.fn();
@@ -42,6 +42,18 @@ const media: PreparedMedia = {
   },
 };
 
+const transcript: Transcript = {
+  available: true,
+  provider: "faster-whisper:small.en",
+  language: "en",
+  duration_s: 8,
+  word_count: 6,
+  segments: [
+    { start_s: 0, end_s: 2.4, text: "Look at the bar chart.", words: [] },
+    { start_s: 4.85, end_s: 7.75, text: "Sales doubled.", words: [] },
+  ],
+};
+
 type Route = (url: string, init?: RequestInit) => unknown;
 
 /** fetch double that answers by URL; each call to `jobs` can return the next queued state. */
@@ -55,6 +67,7 @@ function stubApi(jobs: Job[][], extra: Route = () => undefined) {
       return Response.json(list);
     }
     if (url.endsWith(`/api/projects/${PROJECT}/media`)) return Response.json(media);
+    if (url.endsWith(`/api/projects/${PROJECT}/transcript`)) return Response.json(transcript);
     throw new Error(`unexpected ${url}`);
   });
   vi.stubGlobal("fetch", fetch);
@@ -166,5 +179,22 @@ describe("JobPanel", () => {
     expect(await screen.findByText("Stopping…")).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
     await waitFor(() => expect(refresh).not.toHaveBeenCalled());
+  });
+
+  it("shows the timed transcript once speech-to-text is done", async () => {
+    const speech = job({ id: "job-2", kind: "speech.transcribe", label: "Speech-to-text", status: "succeeded", progress: 1, finished_at: NOW });
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), speech]]);
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    expect(await screen.findByText(/6 words with timings, English, recognized locally by Whisper small\.en/)).toBeInTheDocument();
+    const rows = within(screen.getByRole("list", { name: "Transcript segments" })).getAllByRole("listitem");
+    expect(rows.map((r) => r.textContent)).toEqual(["0:00Look at the bar chart.", "0:05Sales doubled."]);
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("labels the speech stages while recognizing", async () => {
+    stubApi([[job({ kind: "speech.transcribe", label: "Speech-to-text", status: "running", stage: "transcribe", progress: 0.5, attempts: 1 })]]);
+    render(<JobPanel projectId={PROJECT} />);
+    expect(await screen.findByText("Recognizing speech")).toBeInTheDocument();
   });
 });
