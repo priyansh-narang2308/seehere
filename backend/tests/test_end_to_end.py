@@ -140,6 +140,7 @@ def test_upload_to_published_exports_over_http(
         "/api/projects",
         content=narrated.read_bytes(),
         headers={
+            "X-SeeHere-Request": "1",
             "X-SeeHere-Title": quote("Quarterly review"),
             "X-SeeHere-Filename": quote("lecture.mp4"),
             "X-SeeHere-Rights-Confirmed": "true",

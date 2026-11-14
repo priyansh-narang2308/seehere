@@ -31,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from seehere.api.errors import APIError
+from seehere.api.jobs import require_app_request
 from seehere.api.uploads import receive_upload
 from seehere.core.config import Settings, get_settings
 from seehere.db.enums import MediaKind, ProjectStatus
@@ -115,7 +116,12 @@ def _header_text(value: str | None, name: str) -> str:
         raise APIError(400, "invalid_header", f"The {name} header is not valid UTF-8.") from exc
 
 
-@router.post("/projects", status_code=201, response_model=ProjectOut)
+@router.post(
+    "/projects",
+    status_code=201,
+    response_model=ProjectOut,
+    dependencies=[Depends(require_app_request)],
+)
 async def create_project(
     request: Request,
     settings: SettingsDep,

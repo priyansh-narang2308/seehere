@@ -92,7 +92,11 @@ def client(db: Session, media_dir: Path) -> Iterator[TestClient]:
 def _headers(
     title: str = "Lecture 7", filename: str = "lecture.mp4", rights: str | None = "true"
 ) -> dict[str, str]:
-    h = {"X-SeeHere-Title": quote(title), "X-SeeHere-Filename": quote(filename)}
+    h = {
+        "X-SeeHere-Request": "1",
+        "X-SeeHere-Title": quote(title),
+        "X-SeeHere-Filename": quote(filename),
+    }
     if rights is not None:
         h["X-SeeHere-Rights-Confirmed"] = rights
     return h

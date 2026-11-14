@@ -56,6 +56,7 @@ def test_transcript_round_trip(
         "/api/projects",
         content=video.read_bytes(),
         headers={
+            "X-SeeHere-Request": "1",
             "X-SeeHere-Title": quote("Lecture"),
             "X-SeeHere-Filename": "lecture.mp4",
             "X-SeeHere-Rights-Confirmed": "true",
