@@ -79,13 +79,13 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "verify",
     name: "Claim verification",
     summary: "Quoted text and numbers are checked against OCR and slides. Each cue gets a verification state.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "schedule",
     name: "Speech-safe scheduling",
     summary: "Descriptions are placed inside natural pauses so they never talk over the lecturer.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "voice",

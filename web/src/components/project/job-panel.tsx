@@ -22,12 +22,14 @@ import {
   type Visuals,
   type Cues,
   type References,
+  type Schedule,
 } from "@/lib/api";
 import { DeckSection } from "./deck-section";
 import { OcrView } from "./ocr-view";
 import { TranscriptView } from "./transcript-view";
 import { CuesView } from "./cues-view";
 import { ReferencesView } from "./references-view";
+import { ScheduleView } from "./schedule-view";
 import { VisualsView } from "./visuals-view";
 
 const POLL_MS = 1000;
@@ -55,6 +57,8 @@ const STAGES: Record<string, string> = {
   analyze: "Finding charts, tables and text",
   resolve: "Linking spoken references",
   write: "Writing descriptions",
+  verify: "Checking claims against the evidence",
+  schedule: "Fitting descriptions into pauses",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -72,6 +76,8 @@ export function JobPanel({ projectId }: { projectId: string }) {
   const visualsLoadedFor = useRef<string | null>(null);
   const [described, setDescribed] = useState<{ cues: Cues; references: References } | null>(null);
   const describedFor = useRef<string | null>(null);
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const scheduleFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -147,7 +153,9 @@ export function JobPanel({ projectId }: { projectId: string }) {
         }
         // References and descriptions are written in sequence: load both once the last finishes.
         const written = next.jobs.find((j) => j.kind === "descriptions.generate" && j.status === "succeeded");
-        const writtenKey = written ? `${written.id}:${written.finished_at}` : null;
+        // Verification changes each cue's state, so reload when it finishes too.
+        const verified = next.jobs.find((j) => j.kind === "claims.verify");
+        const writtenKey = written ? `${written.id}:${written.finished_at}:${verified?.finished_at ?? ""}` : null;
         if (writtenKey && describedFor.current !== writtenKey) {
           describedFor.current = writtenKey;
           Promise.all([
@@ -160,6 +168,20 @@ export function JobPanel({ projectId }: { projectId: string }) {
         if (!written) {
           describedFor.current = null;
           setDescribed(null);
+        }
+        const planned = next.jobs.find(
+          (j) => j.kind === "schedule.greedy" && (j.status === "succeeded" || j.status === "failed"),
+        );
+        const plannedKey = planned ? `${planned.id}:${planned.finished_at}` : null;
+        if (plannedKey && scheduleFor.current !== plannedKey) {
+          scheduleFor.current = plannedKey;
+          getJson<Schedule>(`/api/projects/${projectId}/schedule`, { signal: controller.signal })
+            .then((sc) => setSchedule(sc.available ? sc : null))
+            .catch(() => {});
+        }
+        if (!planned) {
+          scheduleFor.current = null;
+          setSchedule(null);
         }
         const active = next.jobs.some(isActive);
         if (active) timer = setTimeout(refresh, POLL_MS);
@@ -234,6 +256,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
       {visuals && <VisualsView visuals={visuals} />}
       {described && <ReferencesView references={described.references.references} />}
       {described && <CuesView cues={described.cues.cues} />}
+      {schedule && <ScheduleView schedule={schedule} durationS={media?.audio?.duration_s ?? null} />}
       <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}
     </section>

@@ -160,7 +160,33 @@ export type CueLedger = {
     visual_unit: { kind: VisualKind; label: string; box: Box | null; t_start_s: number; t_end_s: number; coverage: number | null } | null;
     transcript: { start_s: number; end_s: number; text: string } | null;
   }[];
-  checks: { claim: string; check: string; result: "pass" | "fail" | "inconclusive" }[];
+  checks: {
+    claim: string;
+    check: "quote_match" | "number_match" | "description_support";
+    result: "pass" | "fail" | "inconclusive";
+    resulting_state: VerificationState;
+    detail: { source?: string; reason?: string; ocr_confidence?: number };
+  }[];
+};
+
+/** The latest speech-safe schedule (Tasks 18-19). */
+export type Schedule = {
+  available: boolean;
+  solver: "greedy" | "cp_sat" | null;
+  mode: "standard" | "extended" | null;
+  status: "succeeded" | "infeasible" | "failed" | null;
+  windows: { start_s: number; end_s: number }[];
+  placements: {
+    cue_id: string;
+    variant: "short" | "medium" | "long";
+    text: string;
+    start_s: number;
+    end_s: number;
+    verification_state: VerificationState;
+  }[];
+  not_placed: { cue_id: string; text: string; reason: string }[];
+  priority_placed_share: number | null;
+  duration_ms: number | null;
 };
 
 export class ApiError extends Error {

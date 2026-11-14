@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Cue, CueLedger, Deck, Job, JobList, PreparedMedia, References, Transcript, Visuals } from "@/lib/api";
+import type { Cue, CueLedger, Deck, Job, JobList, PreparedMedia, References, Schedule, Transcript, Visuals } from "@/lib/api";
 import { JobPanel } from "./job-panel";
 
 const refresh = vi.fn();
@@ -304,7 +304,10 @@ describe("JobPanel", () => {
         { kind: "transcript_span", note: "spoken reference: this number here", frame: null, ocr_region: null, slide: null, visual_unit: null, transcript: { start_s: 3.2, end_s: 3.9, text: "this number here" } },
         { kind: "visual_unit", note: "ocr unit", frame: null, ocr_region: null, slide: null, visual_unit: { kind: "text_block", label: "Operating margin 41.7% in 2022", box: { x: 0.06, y: 0.46, w: 0.5, h: 0.06 }, t_start_s: 0, t_end_s: 5, coverage: 0.25 }, transcript: null },
       ],
-      checks: [],
+      checks: [
+        { claim: "41.7%", check: "number_match", result: "pass", resulting_state: "verified_text_match", detail: { source: "ocr", ocr_confidence: 0.93 } },
+        { claim: "2023", check: "number_match", result: "fail", resulting_state: "needs_review", detail: { reason: "this value does not appear on screen or on the deck page" } },
+      ],
     };
     stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), written]], (url) =>
       url.endsWith("/cues") ? { available: true, cues: [cue] } : url.endsWith("/references") ? references : url.endsWith("/c1/evidence") ? ledger : undefined,
@@ -316,7 +319,7 @@ describe("JobPanel", () => {
 
     const cues = within(screen.getByRole("list", { name: "Descriptions" }));
     expect(cues.getByText(cue.text_short)).toBeInTheDocument();
-    expect(cues.getByText("Needs review")).toBeInTheDocument();
+    expect(cues.getByText("Needs human review")).toBeInTheDocument();
     const button = cues.getByRole("button", { name: "Show evidence" });
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "true");
@@ -324,6 +327,38 @@ describe("JobPanel", () => {
     expect(evidence.getByText(/Read on screen: “Operating margin 41.7% in 2022” \(93% OCR confidence\)/)).toBeInTheDocument();
     expect(evidence.getByText(/Pointed at \(0:03\)/)).toHaveTextContent("“this number here”");
     expect(screen.getByRole("img", { name: "Keyframe at 0:00" })).toHaveAttribute("src", "/api/frames/k0/image");
+    const checks = within(screen.getByRole("list", { name: "Checks" })).getAllByRole("listitem");
+    expect(checks[0]).toHaveTextContent("Found number “41.7%” (read on screen)");
+    expect(checks[1]).toHaveTextContent("Not found number “2023”: this value does not appear on screen or on the deck page");
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("shows the schedule: what plays in which pause and what could not be voiced", async () => {
+    const planned = job({ id: "job-10", kind: "schedule.greedy", label: "Scheduling", status: "succeeded", progress: 1, finished_at: NOW });
+    const schedule: Schedule = {
+      available: true,
+      solver: "greedy",
+      mode: "standard",
+      status: "succeeded",
+      windows: [{ start_s: 6.05, end_s: 12 }],
+      placements: [
+        { cue_id: "c4", variant: "short", text: "On screen: “Next steps”.", start_s: 6.05, end_s: 7.89, verification_state: "verified_text_match" },
+      ],
+      not_placed: [{ cue_id: "c1", text: "On screen: “Quarterly Revenue”.", reason: "no pause in speech while it is on screen" }],
+      priority_placed_share: 0.5,
+      duration_ms: 0.4,
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), planned]], (url) =>
+      url.endsWith("/schedule") ? schedule : undefined,
+    );
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    expect(await screen.findByText(/1 of 2 descriptions fit into pauses in speech, with no overlap/)).toBeInTheDocument();
+    const placed = within(screen.getByRole("list", { name: "Scheduled descriptions" })).getByRole("listitem");
+    expect(placed).toHaveTextContent("0:06.0–0:07.8On screen: “Next steps”. (short)");
+    expect(within(screen.getByRole("list", { name: "Descriptions not voiced" })).getByRole("listitem")).toHaveTextContent(
+      "On screen: “Quarterly Revenue”. — no pause in speech while it is on screen",
+    );
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });

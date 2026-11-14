@@ -3,14 +3,12 @@
 import { MessageSquareText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { API_BASE, formatDuration, getJson, type Cue, type CueLedger, type VerificationState } from "@/lib/api";
+import { VerificationBadge } from "@/components/ui/verification-badge";
+import { API_BASE, formatDuration, getJson, type Cue, type CueLedger } from "@/lib/api";
 
-const STATE: Record<VerificationState, string> = {
-  verified_text_match: "Verified text match",
-  corroborated: "Corroborated",
-  uncertain: "Uncertain",
-  needs_review: "Needs review",
-};
+
+const CHECK_RESULT = { pass: "Found", fail: "Not found", inconclusive: "Unclear" } as const;
+const CHECK_NAME = { quote_match: "quote", number_match: "number", description_support: "statement" } as const;
 
 /** Description cues in time order, each with its wordings and, on request, its evidence. */
 export function CuesView({ cues }: { cues: Cue[] }) {
@@ -24,7 +22,7 @@ export function CuesView({ cues }: { cues: Cue[] }) {
       ) : (
         <>
           <p className="text-sm text-muted">
-            Drafts written only from what was read on screen. Each needs review until its claims are checked.
+            Drafts written only from what was read on screen. Each quote and number is checked against that evidence.
           </p>
           <ol aria-label="Descriptions" className="space-y-4 text-sm">
             {cues.map((c) => (
@@ -62,7 +60,7 @@ function CueItem({ cue }: { cue: Cue }) {
         <p className="text-ink">{cue.text_short}</p>
         {cue.text_long && <p className="text-ink-2">Long: {cue.text_long}</p>}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded bg-sunken px-1.5 py-0.5 text-xs text-ink-2">{STATE[cue.verification_state]}</span>
+          <VerificationBadge state={cue.verification_state} />
           <Button size="sm" variant="secondary" aria-expanded={open} aria-controls={panelId} onClick={toggle}>
             {open ? "Hide evidence" : "Show evidence"}
           </Button>
@@ -100,6 +98,19 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
           </div>
           <figcaption className="text-xs text-muted">The outlined region is what this description is about.</figcaption>
         </figure>
+      )}
+      {ledger.checks.length > 0 && (
+        <ul aria-label="Checks" className="space-y-1 text-xs text-ink-2">
+          {ledger.checks.map((c, i) => (
+            <li key={i}>
+              <span className={c.result === "fail" ? "font-medium text-danger" : c.result === "pass" ? "text-success" : "text-warning"}>
+                {CHECK_RESULT[c.result]}
+              </span>{" "}
+              {CHECK_NAME[c.check]} “{c.claim}”
+              {c.detail.reason ? `: ${c.detail.reason}` : c.detail.source ? ` (${c.detail.source === "ocr" ? "read on screen" : c.detail.source})` : ""}
+            </li>
+          ))}
+        </ul>
       )}
       <ul aria-label="Evidence" className="space-y-1 text-xs text-ink-2">
         {ledger.evidence.map((e, i) => (
