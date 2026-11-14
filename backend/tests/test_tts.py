@@ -112,7 +112,10 @@ def test_vultr_errors_never_leak_the_key(
 )
 def test_live_vultr_tts(tmp_path: Path) -> None:  # pragma: no cover - opt-in
     cfg = Settings()
-    assert cfg.vultr_inference_api_key is not None
+    if cfg.vultr_inference_api_key is None:
+        pytest.fail(
+            "VULTR_INFERENCE_API_KEY is empty: subscribe to Serverless Inference and add the key"
+        )
     out = VultrTTS(cfg.vultr_inference_api_key, model=cfg.vultr_tts_model).synthesize(
         "On screen: Next steps.", tmp_path / "live.wav"
     )

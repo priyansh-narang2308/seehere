@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -123,6 +123,14 @@ class Settings(BaseSettings):
     piper_bin: str = "piper"  # a separate tool (GPL-3.0), run as a process, never imported
     vultr_tts_voice: str = "serena"
     vultr_tts_timeout_s: float = 60.0
+
+    @field_validator("vultr_inference_api_key", "gemini_api_key", "smallest_api_key", mode="before")
+    @classmethod
+    def _blank_key_is_no_key(cls, v: object) -> object:
+        """`KEY=` in .env means "not configured", never an empty bearer token."""
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v.strip() if isinstance(v, str) else v
 
 
 @lru_cache

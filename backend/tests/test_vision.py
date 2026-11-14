@@ -132,7 +132,10 @@ def test_validate_reports_where_it_failed() -> None:
 )
 def test_live_vultr_vision(image: Path) -> None:  # pragma: no cover - needs approval and a key
     settings = Settings()
-    assert settings.vultr_inference_api_key is not None
+    if settings.vultr_inference_api_key is None:
+        pytest.fail(
+            "VULTR_INFERENCE_API_KEY is empty: subscribe to Serverless Inference and add the key"
+        )
     analyzer = VultrVisionAnalyzer(
         settings.vultr_inference_api_key,
         base_url=settings.vultr_inference_base_url,
