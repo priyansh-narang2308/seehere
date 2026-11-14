@@ -85,16 +85,19 @@ function Evidence({ ledger }: { ledger: CueLedger }) {
   return (
     <div className="space-y-2 rounded-md border border-border bg-surface-muted p-3">
       {frame && (
-        <figure className="relative w-64 max-w-full">
-          {/* eslint-disable-next-line @next/next/no-img-element -- frames come from the API */}
-          <img src={`${API_BASE}${frame.image_url}`} alt={`Keyframe at ${formatDuration(frame.t_s)}`} className="w-full rounded border border-border" />
-          {unit?.box && (
-            <span
-              aria-hidden="true"
-              className="absolute border-2 border-accent"
-              style={{ left: `${unit.box.x * 100}%`, top: `${unit.box.y * 100}%`, width: `${unit.box.w * 100}%`, height: `${unit.box.h * 100}%` }}
-            />
-          )}
+        <figure className="w-64 max-w-full">
+          {/* The overlay is positioned against the image alone, not the caption. */}
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element -- frames come from the API */}
+            <img src={`${API_BASE}${frame.image_url}`} alt={`Keyframe at ${formatDuration(frame.t_s)}`} className="block w-full rounded border border-border" />
+            {unit?.box && (
+              <span
+                aria-hidden="true"
+                className="absolute border-2 border-accent"
+                style={{ left: `${unit.box.x * 100}%`, top: `${unit.box.y * 100}%`, width: `${unit.box.w * 100}%`, height: `${unit.box.h * 100}%` }}
+              />
+            )}
+          </div>
           <figcaption className="text-xs text-muted">The outlined region is what this description is about.</figcaption>
         </figure>
       )}
