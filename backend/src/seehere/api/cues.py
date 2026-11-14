@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from seehere.api.errors import APIError
+from seehere.api.jobs import require_app_request
 from seehere.db.enums import (
     CheckResult,
     EvidenceKind,
     JobStatus,
     ReferenceStatus,
+    ReviewAction,
     ReviewStatus,
     VerificationState,
     VisualKind,
@@ -28,6 +31,7 @@ from seehere.db.models import (
     OcrRegion,
     Project,
     ReferenceLink,
+    ReviewDecision,
     Slide,
     TranscriptWord,
     VerificationEvent,
@@ -35,6 +39,7 @@ from seehere.db.models import (
 )
 from seehere.db.session import get_db
 from seehere.describe import generate
+from seehere.describe.review import ReviewError, apply_review
 from seehere.references import resolve
 from seehere.text.words import join_words
 
@@ -123,10 +128,25 @@ class CheckOut(BaseModel):
     detail: dict[str, Any]
 
 
+class DecisionOut(BaseModel):
+    action: ReviewAction
+    previous_text: str | None
+    new_text: str | None
+    note: str | None
+    created_at: datetime
+
+
 class LedgerOut(BaseModel):
     cue: CueOut
     evidence: list[EvidenceOut]
     checks: list[CheckOut]  # claim verification (Task 17); empty until then
+    decisions: list[DecisionOut] = []  # instructor review history (Task 26), oldest first
+
+
+class ReviewIn(BaseModel):
+    action: ReviewAction
+    text: str | None = Field(default=None, max_length=2000)
+    note: str | None = Field(default=None, max_length=1000)
 
 
 class ReferenceOut(BaseModel):
@@ -239,9 +259,15 @@ def cue_evidence(cue_id: uuid.UUID, db: DbDep) -> LedgerOut:
         .where(VerificationEvent.cue_id == cue_id)
         .order_by(VerificationEvent.created_at)
     )
+    decisions = db.scalars(
+        select(ReviewDecision)
+        .where(ReviewDecision.cue_id == cue_id)
+        .order_by(ReviewDecision.created_at)
+    )
     return LedgerOut(
         cue=_cue(cue),
         evidence=[_evidence(db, e) for e in rows],
+        decisions=[DecisionOut.model_validate(d, from_attributes=True) for d in decisions],
         checks=[
             CheckOut(
                 claim=c.claim,
@@ -253,6 +279,26 @@ def cue_evidence(cue_id: uuid.UUID, db: DbDep) -> LedgerOut:
             for c in checks
         ],
     )
+
+
+@router.post(
+    "/cues/{cue_id}/review",
+    response_model=LedgerOut,
+    dependencies=[Depends(require_app_request)],
+)
+def review_cue(cue_id: uuid.UUID, body: ReviewIn, db: DbDep) -> LedgerOut:
+    """Approve, reject, edit or regenerate a description. Edits are verified again, and the
+    lecture is re-scheduled, re-voiced and re-exported."""
+    cue = db.get(DescriptionCue, cue_id)
+    if cue is None:
+        raise APIError(404, "not_found", "No description with this ID.")
+    try:
+        apply_review(db, cue, body.action, text=body.text, note=body.note)
+    except ReviewError as exc:
+        raise APIError(422, "invalid_review", str(exc)) from exc
+    db.commit()
+    db.refresh(cue)
+    return cue_evidence(cue_id, db)
 
 
 @router.get("/projects/{project_id}/references", response_model=ReferencesOut)
