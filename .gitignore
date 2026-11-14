@@ -23,6 +23,7 @@ out/
 next-env.d.ts
 
 # media and generated output (never commit uploads)
+demo-video/
 var/
 /media/
 *.mp4
