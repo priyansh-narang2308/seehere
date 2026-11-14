@@ -3,7 +3,7 @@
 **Hear what the lecture shows, not just what it says.**
 Evidence-grounded audio descriptions for lecture videos. HackGlobal 2026, Track 02: Multimodal and Accessibility.
 
-> Status: **early build (Tasks 01–09).** Implemented so far: health checks, the design system (`/design`), the application shell, the database schema, secure lecture upload, a Postgres-backed job worker with retries, cancellation, crash recovery and 24-hour deletion, media preparation (16 kHz speech audio and one frame per second, with live progress), local speech-to-text with word timings (Whisper), and scene and slide change detection with keyframes. The later analysis stages are not built yet; the Methodology page shows the live build status of each stage. See `docs/PROJECT_ROADMAP.md`. This README states only what works.
+> Status: **early build (Tasks 01–10).** Implemented so far: health checks, the design system (`/design`), the application shell, the database schema, secure lecture upload, a Postgres-backed job worker with retries, cancellation, crash recovery and 24-hour deletion, media preparation (16 kHz speech audio and one frame per second, with live progress), local speech-to-text with word timings (Whisper), scene and slide change detection with keyframes, and on-screen text (Tesseract OCR) with number normalization. The later analysis stages are not built yet; the Methodology page shows the live build status of each stage. See `docs/PROJECT_ROADMAP.md`. This README states only what works.
 
 ## What it will do
 
@@ -25,7 +25,7 @@ make db-up                                  # Postgres 16 on 127.0.0.1:5433
 cd backend && uv sync && cd ..
 cd web && pnpm install && cp ../.env.example .env.local && cd ..
 make api                                    # http://localhost:8000/api/health  (docs: /api/docs)
-make worker                                 # background jobs (media preparation, speech-to-text, scene detection, deletion)
+make worker                                 # background jobs (media preparation, speech-to-text, scene detection, OCR, deletion)
 make web                                    # http://localhost:3000  (design system: /design)
 make check                                  # lint + typecheck + tests
 ```

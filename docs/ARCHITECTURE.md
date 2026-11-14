@@ -117,6 +117,11 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 - Job `scenes.detect` after `media.prepare`. Thumbnails of the sampled frames are compared with the last keyframe; a keyframe is taken once the picture has changed and settled. Revisited slides reuse their earlier `scene_index` (dedupe).
 - Output on `frame`: `is_keyframe`, `scene_index`, `phash` (dHash). Served in `GET /api/projects/{id}/media` as `scenes`.
 
+## On-screen text (Task 10)
+- Job `ocr.extract` after `scenes.detect`, on keyframes only. Tesseract TSV is grouped into lines → `ocr_region` (text as read, confidence 0–1, box as fractions of the frame). Served by `GET /api/projects/{id}/ocr`.
+- `seehere.text.numbers` normalizes numbers from OCR and speech for later comparison; stored evidence is never rewritten.
+- Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract`).
+
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.
 2. **STT:** faster-whisper words with start/end/confidence, then sentences.

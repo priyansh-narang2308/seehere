@@ -29,7 +29,7 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 07 | Media inspection and normalization | P0 | ✅ | ffprobe metadata stored; malformed input rejected; 16 kHz WAV + frame sampling produced; subprocess argv-only with timeouts |
 | 08 | Speech-to-text | P0 | ✅ | faster-whisper adapter returns words with timings on a real clip; capability marked TESTED; Vultr Whisper adapter tested for text only (if key provided) |
 | 09 | Scene and slide change detection | P0 | ✅ | Keyframes with timestamps; dedupe; precision checked on the demo clip |
-| 10 | OCR and text evidence | P0 | ⏳ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |
+| 10 | OCR and text evidence | P0 | ✅ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |
 | 11 | Slide deck ingestion (PDF/PPTX) | P1 | ⏳ | PDF via PyMuPDF; PPTX via python-pptx with zip-bomb/path guards; slide↔keyframe alignment by text similarity |
 | 12 | Multimodal visual analysis | P0 | ⏳ | Vultr VLM adapter TESTED with JSON schema; invalid output rejected and retried once; units stored with region boxes |
 | 13 | Seen-versus-said analysis | P0 | ⏳ | Per-unit coverage score vs. transcript window; uncovered units prioritized; unit tests |

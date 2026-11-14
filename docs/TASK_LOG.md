@@ -380,3 +380,31 @@
 - Changes are found at the sampling rate (1 per second); a slide shown for less than about 2 s may be missed.
 - A uniform brightness change (camera exposure) counts as a change.
 
+## Task 10: OCR and text evidence (2026-11-14) ✅
+
+### Implemented
+- **`media/ocr.py`**, job `ocr.extract`, queued by scene detection (keyframes only, so a revisited slide is read once).
+  - Each keyframe: grayscale, 2× upscale below 1600 px wide, then `tesseract <png> stdout -l eng --psm 3 tsv` (argv only, timeout, `OMP_THREAD_LIMIT=1`).
+  - TSV words grouped into lines; each line becomes an `ocr_region` with its text **as read**, mean confidence 0–1, and a box as fractions of the frame. Lines below `ocr_min_confidence` (0.3) or with no letters or digits are dropped.
+  - Re-runs replace all regions. A missing or failing Tesseract is retried with "Text recognition failed on a keyframe."
+- **`text/numbers.py`** for later seen-versus-said and claim checks:
+  - `extract_numbers`: thousands separators, decimals, Unicode minus, %, $ € £ ¥ ₹, k/M/bn/million; ignores digits inside words and version strings.
+  - `words_to_number` ("three hundred and twelve" → 312, "four point two five" → 4.25).
+  - `fix_ocr_digits` ("1O0" → 100, "Oslo" untouched).
+  - `same_number`: allows for the rounding a slide shows ("$3.2M" ≈ 3,180,000; "12.5%" ≈ 0.125).
+- **API:** `GET /api/projects/{id}/ocr`. Job lists now break `created_at` ties by pipeline order.
+- **Web:** an "On-screen text" list by keyframe, low-confidence lines marked, an "evidence, not verified fact" note; stage 05 marked built (5 of 15).
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_ocr.py` (7) | Slides drawn with known text: **every line read exactly** at 1280 and 640 px; **box IoU > 0.6** against the drawn box; confidence > 0.6; numbers parsed as 12.5, 3,200,000, 41.7, 2022. Blank slide gives no text. TSV grouping and filtering. Missing binary and bad language reported. End to end: 2 keyframes read, the revisit skipped, re-run identical; missing Tesseract retried with a message |
+| `test_numbers.py` (35) | All the forms above, plus rejections |
+| Backend / Web | **188 passed, 1 skipped** / **109 passed** |
+| Live | Deck video → 4 jobs done; page shows both slides' text (confidence 0.94–0.97) |
+
+### Known limitations
+- Tested on clean rendered slides. Handwriting, photos of whiteboards, low-contrast or stylized text, and equations will read worse; real-lecture accuracy is not measured yet.
+- English only (`eng`); other languages need their Tesseract data and `OCR_LANGUAGE`.
+- No table or chart structure: each line is plain text. Chart values come from visual analysis (Task 12).
+
