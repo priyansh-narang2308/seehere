@@ -42,3 +42,4 @@ var/
 
 # server-side database dumps
 deploy/backups/
+.originkit/
