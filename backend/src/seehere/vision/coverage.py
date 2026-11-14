@@ -15,26 +15,25 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
-from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from seehere.db.enums import MediaKind, VisualKind
-from seehere.db.models import MediaAsset, TranscriptWord, VisualUnit
+from seehere.db.enums import JobStatus, MediaKind, VisualKind
+from seehere.db.models import Job, MediaAsset, TranscriptWord, VisualUnit
 from seehere.jobs import queue
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
-from seehere.text.numbers import extract_numbers, fix_ocr_digits, same_number, words_to_number
+from seehere.references.resolve import queue_references
+from seehere.text.numbers import extract_numbers, fix_ocr_digits, same_number
+from seehere.text.words import content_words, join_words, spoken_numbers
 
 log = logging.getLogger("seehere.coverage")
 
 JOB_KIND = "coverage.score"
+# speech.transcribe's JOB_KIND (that module queues this one, so it is not imported here)
+SPEECH_JOB_KIND = "speech.transcribe"
 NUMBER_WEIGHT = 2
-MAX_NUMBER_WORDS = 8
-# "three point two million": words_to_number stops at the decimal, so apply the scale here
-_SCALE_WORDS = {"thousand": 10**3, "million": 10**6, "billion": 10**9, "trillion": 10**12}
-
 KIND_WEIGHT = {
     VisualKind.CHART: 1.0,
     VisualKind.TABLE: 1.0,
@@ -44,56 +43,6 @@ KIND_WEIGHT = {
     VisualKind.TEXT_BLOCK: 0.6,
     VisualKind.OTHER: 0.5,
 }
-
-_WORD = re.compile(r"[a-z]+")
-_STOP_WORDS = (
-    "the and for are but not you all any can had her was one our out has have this that with "
-    "from they will would there their what which when your into than then them these those "
-    "its also been more most some such only over very just about"
-)
-_STOP = frozenset(_STOP_WORDS.split())
-
-
-def _stem(word: str) -> str:
-    for suffix in ("ies", "es", "s"):
-        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
-            return word[: -len(suffix)] + ("y" if suffix == "ies" else "")
-    return word
-
-
-def content_words(text: str) -> set[str]:
-    """Distinctive words: 3+ letters, not a stop word, plural folded."""
-    return {_stem(w) for w in _WORD.findall(text.lower()) if len(w) >= 3 and w not in _STOP}
-
-
-_SPLIT_NUMBER = re.compile(r"(\d) (?=[.,]\d|%)")
-
-
-def join_words(words: list[str]) -> str:
-    """Transcript words to text. Speech-to-text may split one number across words
-    ("12", ".5%"), so those pieces are joined back together."""
-    return _SPLIT_NUMBER.sub(r"\1", " ".join(words))
-
-
-def spoken_numbers(text: str) -> list[Decimal]:
-    """Values said as digits ("12.5") or as words ("twelve point five")."""
-    values = [m.value for m in extract_numbers(text)]
-    words = _WORD.findall(text.lower())
-    i = 0
-    while i < len(words):
-        # the longest run of words starting here that reads as one number
-        for j in range(min(len(words), i + MAX_NUMBER_WORDS), i, -1):
-            value = words_to_number(" ".join(words[i:j]))
-            if value is not None:
-                if j < len(words) and words[j] in _SCALE_WORDS:
-                    value *= _SCALE_WORDS[words[j]]
-                    j += 1
-                values.append(value)
-                i = j
-                break
-        else:
-            i += 1
-    return values
 
 
 @dataclass(frozen=True)
@@ -158,10 +107,18 @@ def score_coverage(ctx: JobContext, job: ClaimedJob) -> None:
             if audio_id
             else []
         )
-        if not units or not words:
+        speech_done = s.scalar(
+            select(Job.id).where(
+                Job.project_id == job.project_id,
+                Job.kind == SPEECH_JOB_KIND,
+                Job.status == JobStatus.SUCCEEDED,
+            )
+        )
+        if not units or speech_done is None:
             # Nothing to compare yet: the stage that finishes later queues this job again.
             log.info("project %s: coverage waits for units and transcript", job.project_id)
             return
+        # A finished transcript with no words (a silent lecture) leaves everything unsaid.
         pad = ctx.settings.coverage_window_pad_s
         for n, unit in enumerate(units):
             ctx.progress("compare", n / len(units))
@@ -172,6 +129,7 @@ def score_coverage(ctx: JobContext, job: ClaimedJob) -> None:
             unit.priority = score.priority
             unit.values = {**unit.values, "said": score.said, "unsaid": score.unsaid}
         ctx.check_cancelled()
+        queue_references(s, job.project_id)
         s.commit()
     log.info("project %s: scored %d visual units", job.project_id, len(units))
     ctx.progress("compare", 1.0)

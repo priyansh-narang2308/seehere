@@ -11,24 +11,18 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from pipeline_project import add_project, run_jobs
+from pipeline_project import add_project, run_jobs, say
 from slide_images import make_deck_video
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.api.main import app
 from seehere.core.config import Settings, get_settings
-from seehere.db.enums import JobStatus, MediaKind, VisualKind
-from seehere.db.models import Job, MediaAsset, TranscriptSegment, TranscriptWord, VisualUnit
+from seehere.db.enums import JobStatus, VisualKind
+from seehere.db.models import Job, VisualUnit
 from seehere.db.session import get_db
-from seehere.vision.coverage import (
-    JOB_KIND,
-    content_words,
-    join_words,
-    queue_coverage,
-    score_unit,
-    spoken_numbers,
-)
+from seehere.text.words import content_words, join_words, spoken_numbers
+from seehere.vision.coverage import JOB_KIND, score_unit
 
 Sessions = sessionmaker[Session]
 UNITS_CHAIN = ("media.prepare", "scenes.detect", "ocr.extract", "visual.analyze")
@@ -50,6 +44,13 @@ def test_numbers_split_across_transcript_words_are_rejoined() -> None:
 
 def test_content_words_skip_stop_words_and_fold_plurals() -> None:
     assert content_words("The engineers and the categories of it") == {"engineer", "category"}
+    assert content_words("lines boxes values class analysis") == {
+        "line",
+        "box",
+        "value",
+        "class",
+        "analysis",
+    }
 
 
 def test_fully_said_unit_has_full_coverage_and_no_priority() -> None:
@@ -97,39 +98,6 @@ def settings(tmp_path: Path) -> Settings:
     return Settings(media_dir=tmp_path / "media", job_heartbeat_interval_s=0.2)
 
 
-def _say(sessions: Sessions, pid: uuid.UUID, words: list[tuple[float, str]]) -> None:
-    """Write transcript words as speech-to-text would, and queue scoring as it does."""
-    with sessions() as s:
-        audio = s.scalars(
-            select(MediaAsset).where(
-                MediaAsset.project_id == pid, MediaAsset.kind == MediaKind.NORMALIZED_AUDIO
-            )
-        ).one()
-        seg = TranscriptSegment(
-            media_asset_id=audio.id,
-            idx=0,
-            start_s=words[0][0],
-            end_s=words[-1][0] + 0.3,
-            text=" ".join(w for _, w in words),
-        )
-        s.add(seg)
-        s.flush()
-        s.add_all(
-            TranscriptWord(
-                segment_id=seg.id,
-                media_asset_id=audio.id,
-                idx=i,
-                start_s=t,
-                end_s=t + 0.3,
-                text=w,
-                confidence=0.9,
-            )
-            for i, (t, w) in enumerate(words)
-        )
-        queue_coverage(s, pid)
-        s.commit()
-
-
 def _scores(sessions: Sessions, pid: uuid.UUID) -> dict[tuple[float, str], VisualUnit]:
     with sessions() as s:
         units = s.scalars(select(VisualUnit).where(VisualUnit.project_id == pid))
@@ -148,7 +116,7 @@ def test_job_scores_each_appearance_against_its_own_window(
 
     # Spoken while slide 1 is first shown (0-5 s); slide 1 comes back at 9-12 s.
     spoken = "this quarter revenue rose twelve point five percent"
-    _say(sessions, pid, [(0.5 + 0.4 * i, w) for i, w in enumerate(spoken.split())])
+    say(sessions, pid, [(0.5 + 0.4 * i, w) for i, w in enumerate(spoken.split())])
     run_jobs(sessions, settings, (JOB_KIND,))
 
     units = _scores(sessions, pid)
