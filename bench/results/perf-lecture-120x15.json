@@ -1,0 +1,160 @@
+{
+  "project_id": "142d77f5-6142-44b4-ba55-c88cc42dd58d",
+  "status": "ready",
+  "measured_at": "2026-11-14T10:07:53+00:00",
+  "machine": "Darwin arm64, Python 3.12.12",
+  "video": "lecture-120x15.mp4",
+  "upload_s": 0.14,
+  "upload_to_ready_s": 156.884,
+  "video_duration_s": 1800.0,
+  "processing_s": 155.738,
+  "elapsed_s": 156.045,
+  "processing_per_video_s": 0.087,
+  "stages": [
+    {
+      "job_id": "4ef07d11-8d82-429b-af06-73dd5ca27a3f",
+      "kind": "media.prepare",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 3.333,
+      "cpu_s": 0.146,
+      "child_cpu_s": 17.681,
+      "peak_rss_mb": 193.875,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "538b40a4-f162-44b2-87ab-17574971ca61",
+      "kind": "speech.transcribe",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 114.24,
+      "cpu_s": 472.192,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "d70cbd69-9043-4e2e-b0a0-c9d236a38841",
+      "kind": "scenes.detect",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 1.625,
+      "cpu_s": 1.049,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "95266249-ea88-4989-a3ce-ec772c6ff04a",
+      "kind": "ocr.extract",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 1.36,
+      "cpu_s": 0.278,
+      "child_cpu_s": 0.984,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "3fbab0bd-fafc-4917-bb15-cdc726344956",
+      "kind": "visual.analyze",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.05,
+      "cpu_s": 0.025,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "edca282e-1529-49c3-aa84-4e45161edadf",
+      "kind": "coverage.score",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.134,
+      "cpu_s": 0.096,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "7213d368-f9dd-45c4-9b7e-dd878f2e5f2c",
+      "kind": "references.resolve",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.015,
+      "cpu_s": 0.009,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "609f0362-e28c-4e5c-800b-0f8312dc965d",
+      "kind": "descriptions.generate",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.037,
+      "cpu_s": 0.02,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "c7984b27-e235-4814-9122-f0cc852b3c19",
+      "kind": "claims.verify",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.043,
+      "cpu_s": 0.019,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "ba184380-6372-44e1-853e-9e3be9265368",
+      "kind": "schedule.plan",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.095,
+      "cpu_s": 0.076,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "69a9d235-a95f-4337-a56e-6bf99d6a8b93",
+      "kind": "speech.synthesize",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 11.234,
+      "cpu_s": 0.144,
+      "child_cpu_s": 17.577,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "713f0685-ac5a-45ac-9cba-6cd7704b4bee",
+      "kind": "timing.check",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 0.119,
+      "cpu_s": 0.092,
+      "child_cpu_s": 0.0,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    },
+    {
+      "job_id": "4487148f-155f-478a-822c-f6ae3220ae67",
+      "kind": "export.build",
+      "status": "succeeded",
+      "attempts": 1,
+      "run_s": 23.453,
+      "cpu_s": 0.715,
+      "child_cpu_s": 128.808,
+      "peak_rss_mb": 1640.484,
+      "provider_calls": 0
+    }
+  ],
+  "providers": [],
+  "prices_configured": false
+}
