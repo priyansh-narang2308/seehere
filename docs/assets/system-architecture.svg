@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720" role="img" aria-labelledby="t d">
+  <title id="t">SeeHere system architecture</title>
+  <desc id="d">The browser reaches Caddy over HTTPS. Caddy sends page requests to the Next.js web app and /api requests to FastAPI. FastAPI and the worker share Postgres, which stores data and the job queue, and a media volume. The worker runs local tools (ffmpeg, faster-whisper, Tesseract, OR-Tools CP-SAT, Piper) and optional hosted models (Gemini vision, Vultr Serverless Inference).</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5B6478"/></marker>
+    <style>
+      .t{font-family:Inter,'Segoe UI',Helvetica,Arial,sans-serif;fill:#181C26}
+      .h{font-size:17px;font-weight:600}
+      .s{font-size:13px;fill:#5B6478}
+      .k{font-size:12px;font-weight:600;letter-spacing:.08em;fill:#5B6478}
+      .box{fill:#fff;stroke:#D5DAE3;stroke-width:1.5}
+      .acc{fill:#EEF2FF;stroke:#2F5BFF;stroke-width:1.5}
+      .ext{fill:#F7F8FA;stroke:#B9C0CD;stroke-width:1.5;stroke-dasharray:6 4}
+      .ln{stroke:#5B6478;stroke-width:1.6;fill:none}
+      .dl{stroke:#5B6478;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#FBFBFD"/>
+  <text x="40" y="52" class="t" style="font-size:26px;font-weight:700">SeeHere system architecture</text>
+  <text x="40" y="80" class="t s">What runs today: one server, five containers, local tools first, hosted models optional.</text>
+
+  <!-- Browser -->
+  <rect x="40" y="300" width="170" height="96" rx="12" class="box"/>
+  <text x="125" y="338" text-anchor="middle" class="t h">Browser</text>
+  <text x="125" y="360" text-anchor="middle" class="t s">Upload, review,</text>
+  <text x="125" y="377" text-anchor="middle" class="t s">accessible player</text>
+
+  <!-- Server frame -->
+  <rect x="260" y="112" width="900" height="560" rx="18" fill="none" stroke="#2F5BFF" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <text x="282" y="140" class="t k">VULTR CLOUD COMPUTE · DOCKER COMPOSE</text>
+
+  <!-- Caddy -->
+  <rect x="290" y="300" width="160" height="96" rx="12" class="acc"/>
+  <text x="370" y="338" text-anchor="middle" class="t h">Caddy</text>
+  <text x="370" y="360" text-anchor="middle" class="t s">HTTPS (Let's Encrypt)</text>
+  <text x="370" y="377" text-anchor="middle" class="t s">routes by path</text>
+  <path d="M210 348H284" class="ln" marker-end="url(#a)"/>
+  <text x="247" y="338" text-anchor="middle" class="t s">443</text>
+
+  <!-- Web -->
+  <rect x="510" y="170" width="220" height="110" rx="12" class="box"/>
+  <text x="620" y="207" text-anchor="middle" class="t h">Web · Next.js 16</text>
+  <text x="620" y="230" text-anchor="middle" class="t s">React 19, server-rendered pages</text>
+  <text x="620" y="248" text-anchor="middle" class="t s">upload, processing, review,</text>
+  <text x="620" y="266" text-anchor="middle" class="t s">results, status</text>
+  <path d="M450 330C480 330 480 225 504 225" class="ln" marker-end="url(#a)"/>
+  <text x="470" y="255" class="t s">/*</text>
+
+  <!-- API -->
+  <rect x="510" y="410" width="220" height="110" rx="12" class="box"/>
+  <text x="620" y="447" text-anchor="middle" class="t h">API · FastAPI</text>
+  <text x="620" y="470" text-anchor="middle" class="t s">uploads, cues, review, exports,</text>
+  <text x="620" y="488" text-anchor="middle" class="t s">reports, metrics; rate limits,</text>
+  <text x="620" y="506" text-anchor="middle" class="t s">security headers</text>
+  <path d="M450 366C480 366 480 465 504 465" class="ln" marker-end="url(#a)"/>
+  <text x="404" y="424" class="t s">/api/*</text>
+  <path d="M620 280V404" class="dl" marker-end="url(#a)"/>
+  <text x="630" y="347" class="t s">server-side fetch</text>
+
+  <!-- Postgres -->
+  <rect x="790" y="410" width="160" height="110" rx="12" class="box"/>
+  <text x="870" y="447" text-anchor="middle" class="t h">PostgreSQL 16</text>
+  <text x="870" y="470" text-anchor="middle" class="t s">evidence, cues,</text>
+  <text x="870" y="488" text-anchor="middle" class="t s">schedules, reviews</text>
+  <text x="870" y="506" text-anchor="middle" class="t s">+ job queue</text>
+  <path d="M730 465H784" class="ln" marker-end="url(#a)"/>
+
+  <!-- Worker -->
+  <rect x="790" y="170" width="340" height="190" rx="12" class="acc"/>
+  <text x="810" y="203" class="t h">Worker · 14 pipeline stages</text>
+  <text x="810" y="225" class="t s">claims jobs with SKIP LOCKED, heartbeats,</text>
+  <text x="810" y="243" class="t s">retries with backoff, measures every attempt</text>
+  <g class="t s">
+    <rect x="810" y="260" width="96" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="858" y="279" text-anchor="middle">ffmpeg</text>
+    <rect x="914" y="260" width="108" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="968" y="279" text-anchor="middle">faster-whisper</text>
+    <rect x="1030" y="260" width="84" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="1072" y="279" text-anchor="middle">Tesseract</text>
+    <rect x="810" y="298" width="140" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="880" y="317" text-anchor="middle">OR-Tools CP-SAT</text>
+    <rect x="958" y="298" width="72" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="994" y="317" text-anchor="middle">Piper</text>
+    <rect x="1038" y="298" width="76" height="28" rx="6" fill="#fff" stroke="#D5DAE3"/><text x="1076" y="317" text-anchor="middle">pypdf</text>
+  </g>
+  <text x="810" y="348" class="t s">all local: no per-request cost</text>
+  <path d="M870 360V404" class="ln" marker-end="url(#a)"/>
+  <path d="M870 404V366" class="ln" marker-end="url(#a)"/>
+
+  <!-- Media volume -->
+  <rect x="510" y="570" width="440" height="72" rx="12" class="box"/>
+  <text x="730" y="600" text-anchor="middle" class="t h">Media volume</text>
+  <text x="730" y="622" text-anchor="middle" class="t s">source video, 16 kHz audio, frames, voice clips, exports · deleted after 24 h</text>
+  <path d="M620 520V564" class="ln" marker-end="url(#a)"/>
+  <path d="M966 360V606H952" class="ln" marker-end="url(#a)"/>
+
+  <!-- Hosted -->
+  <rect x="995" y="430" width="145" height="110" rx="12" class="ext"/>
+  <text x="1067" y="460" text-anchor="middle" class="t h" style="font-size:15px">Hosted models</text>
+  <text x="1067" y="482" text-anchor="middle" class="t s">Gemini vision</text>
+  <text x="1067" y="500" text-anchor="middle" class="t s">Vultr Serverless</text>
+  <text x="1067" y="518" text-anchor="middle" class="t s">Inference (optional)</text>
+  <path d="M1110 360V424" class="dl" marker-end="url(#a)"/>
+
+  <text x="40" y="700" class="t s">Solid lines: always used. Dashed: server-side page data and opt-in hosted models (metered per call).</text>
+</svg>
