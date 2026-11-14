@@ -14,6 +14,7 @@ from seehere.jobs.worker import Handler
 from seehere.media import normalize, ocr, scenes
 from seehere.slides import ingest
 from seehere.speech import transcribe
+from seehere.vision import coverage, units
 
 HANDLERS: dict[str, Handler] = {
     normalize.JOB_KIND: normalize.prepare_media,
@@ -21,6 +22,8 @@ HANDLERS: dict[str, Handler] = {
     scenes.JOB_KIND: scenes.detect_scene_changes,
     ocr.JOB_KIND: ocr.extract_text,
     ingest.JOB_KIND: ingest.ingest_deck,
+    units.JOB_KIND: units.analyze_visuals,
+    coverage.JOB_KIND: coverage.score_coverage,
 }
 
 # What each job kind is called in the UI.
@@ -30,6 +33,8 @@ JOB_LABELS = {
     scenes.JOB_KIND: "Scene and slide changes",
     ocr.JOB_KIND: "On-screen text",
     ingest.JOB_KIND: "Slide deck",
+    units.JOB_KIND: "Visual analysis",
+    coverage.JOB_KIND: "Seen versus said",
 }
 
 

@@ -35,6 +35,7 @@ from seehere.jobs.errors import PermanentJobError, RetryableJobError
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.slides.ingest import has_deck, queue_deck_ingest
+from seehere.vision.units import queue_visual_analysis
 
 log = logging.getLogger("seehere.ocr")
 
@@ -184,6 +185,7 @@ def extract_text(ctx: JobContext, job: ClaimedJob) -> None:
         )
         if has_deck(s, job.project_id):  # keyframe text changed: realign the deck
             queue_deck_ingest(s, job.project_id)
+        queue_visual_analysis(s, job.project_id)
         s.commit()
     log.info(
         "project %s: %d text lines on %d keyframes",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -72,6 +73,13 @@ class Settings(BaseSettings):
     max_deck_mb: int = 50
     # Minimum text similarity (Dice, 0..1) between a page and a keyframe's OCR text to align them.
     slide_align_threshold: float = 0.4
+
+    # --- visual analysis and seen-versus-said (Tasks 12-13) ---
+    # "none": units come from OCR only. "vultr": also ask the vision model (costs credit).
+    vision_provider: Literal["none", "vultr"] = "none"
+    vultr_vision_timeout_s: float = 90.0
+    # Speech this many seconds before/after a unit is on screen counts as describing it.
+    coverage_window_pad_s: float = 5.0
 
     @property
     def max_deck_bytes(self) -> int:

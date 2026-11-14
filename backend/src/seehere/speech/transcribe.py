@@ -28,6 +28,7 @@ from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.providers.base import SpeechToText
 from seehere.providers.stt_faster_whisper import FasterWhisperSTT, ModelUnavailable
+from seehere.vision.coverage import queue_coverage
 
 log = logging.getLogger("seehere.speech")
 
@@ -132,6 +133,7 @@ def transcribe_speech(ctx: JobContext, job: ClaimedJob) -> None:
                 **transcript.metadata,
             },
         }
+        queue_coverage(s, job.project_id)  # the words changed: re-score seen versus said
         s.commit()
     log.info(
         "project %s: %d segments, %d words (%s)",
