@@ -1,0 +1,92 @@
+[
+ {
+  "id": "s1a",
+  "scene": 1,
+  "text": "A lecturer points at the screen and says: look at this chart."
+ },
+ {
+  "id": "s1b",
+  "scene": 1,
+  "text": "For most students, that sentence is enough. For a blind or low-vision student, it's a gap. The chart, its labels, its numbers: all of it is on screen, and none of it is spoken aloud."
+ },
+ {
+  "id": "s2a",
+  "scene": 2,
+  "text": "This is See Here."
+ },
+ {
+  "id": "s2b",
+  "scene": 2,
+  "text": "See Here takes a recorded lecture and adds short audio descriptions of what's on screen that the lecturer never reads aloud. Every description is linked to its evidence, placed in a natural pause, and reviewed by the instructor before anything is published."
+ },
+ {
+  "id": "s3a",
+  "scene": 3,
+  "text": "Here's how it works. The video is split into audio and frames. Speech is transcribed with word timings. Slide changes become keyframes. On-screen text is read with O C R, and a vision model on Vulture Serverless Inference finds the charts, tables and diagrams."
+ },
+ {
+  "id": "s3b",
+  "scene": 3,
+  "text": "See Here compares what's shown with what's said, and keeps the visuals that are never spoken. When the lecturer says this, or here, it works out which region they mean. Descriptions are written only from that evidence, every claim is checked, and a constraint solver places them in the pauses. Then the voice is generated, and the timing is checked again."
+ },
+ {
+  "id": "s4a",
+  "scene": 4,
+  "text": "Let's run it on the live site. I upload a ninety-six second lecture on photosynthesis, give it a title, and confirm I have permission to process it."
+ },
+ {
+  "id": "s4b",
+  "scene": 4,
+  "text": "Processing starts straight away. Each step is a real job on the server: preparing the media, transcribing speech, detecting slide changes, reading on-screen text, and asking the vision model what each slide shows."
+ },
+ {
+  "id": "s4c",
+  "scene": 4,
+  "text": "In under a minute, the lecture is ready."
+ },
+ {
+  "id": "s4d",
+  "scene": 4,
+  "text": "The player shows the original lecture, with each description voiced in a gap in the speech. Next to it is the transcript, with the descriptions placed where they'll be heard."
+ },
+ {
+  "id": "s4e",
+  "scene": 4,
+  "text": "Every description carries a verification state. Open its evidence, and you see where it came from: the keyframe, the region on screen, the text that was read, and what the lecturer was saying at that moment."
+ },
+ {
+  "id": "s4f",
+  "scene": 4,
+  "text": "One description is held back. The text reader got the equation wrong, so See Here won't voice it until the instructor checks it."
+ },
+ {
+  "id": "s4g",
+  "scene": 4,
+  "text": "The schedule shows where each description sits between stretches of speech. And everything exports: a Web V T T description track, a described video, the audio clips, an accessible transcript, and a coverage and verification report."
+ },
+ {
+  "id": "s5a",
+  "scene": 5,
+  "text": "What makes See Here different is that it doesn't trust itself blindly."
+ },
+ {
+  "id": "s5b",
+  "scene": 5,
+  "text": "Descriptions come only from evidence it can point to. Quoted text and numbers are checked against what was read on screen. A constraint solver, built on Google's O R Tools, chooses which descriptions fit the pauses, so it never talks over the lecturer. After the voice is generated, the real clip lengths are measured and the plan is checked again. And when the evidence is uncertain, a person decides."
+ },
+ {
+  "id": "s6a",
+  "scene": 6,
+  "text": "All of this runs on Vulture. The app, the A P I, the database and the processing worker run on a Vulture Cloud Compute instance, served over H T T P S."
+ },
+ {
+  "id": "s6b",
+  "scene": 6,
+  "text": "The live status page shows the health of every part, the measured time of every stage, and every call to Vulture Serverless Inference, with its tokens and latency."
+ },
+ {
+  "id": "s7a",
+  "scene": 7,
+  "text": "See Here. Making every part of a lecture accessible."
+ }
+]
