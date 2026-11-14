@@ -3,29 +3,23 @@
 from __future__ import annotations
 
 import io
-import shutil
 import uuid
 import zipfile
 from collections.abc import Iterator
-from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 
 import pytest
 from deck_files import make_pdf, make_pptx
 from fastapi.testclient import TestClient
+from pipeline_project import add_project, run_jobs
 from pypdf import PdfReader, PdfWriter
 from slide_images import SLIDE_1, SLIDE_2, make_deck_video
 from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.api.main import app
 from seehere.core.config import Settings, get_settings
-from seehere.db.enums import MediaKind
-from seehere.db.models import MediaAsset, Project
 from seehere.db.session import get_db
-from seehere.jobs.worker import Worker
-from seehere.media.storage import MediaStore, source_video_path
-from seehere.pipeline import HANDLERS, start_pipeline
 from seehere.slides.deck import (
     PDF,
     PPTX,
@@ -39,6 +33,7 @@ from seehere.slides.deck import (
 
 Sessions = sessionmaker[Session]
 ACTION = {"X-SeeHere-Request": "1"}
+DECK_CHAIN = ("media.prepare", "scenes.detect", "ocr.extract", "deck.ingest")
 TEXT_1 = [t for t, *_ in SLIDE_1]
 TEXT_2 = [t for t, *_ in SLIDE_2]
 APPENDIX = ["Appendix", "Further reading and references"]
@@ -174,44 +169,12 @@ def client(sessions: Sessions, settings: Settings) -> Iterator[TestClient]:
     app.dependency_overrides.clear()
 
 
-def _project(sessions: Sessions, settings: Settings, video: Path) -> uuid.UUID:
-    with sessions() as s:
-        project = Project(title="Deck", rights_confirmed_at=datetime.now(UTC))
-        s.add(project)
-        s.flush()
-        rel = source_video_path(project.id, ".mp4")
-        media = MediaAsset(
-            project_id=project.id,
-            kind=MediaKind.SOURCE_VIDEO,
-            original_filename="deck.mp4",
-            storage_path=rel,
-            mime_type="video/mp4",
-            size_bytes=video.stat().st_size,
-            sha256="0" * 64,
-        )
-        s.add(media)
-        s.flush()
-        dest = MediaStore(settings.media_dir).resolve(rel)
-        dest.parent.mkdir(parents=True)
-        shutil.copyfile(video, dest)
-        start_pipeline(s, project.id, media.id)
-        s.commit()
-        return project.id
-
-
 def _post_deck(client: TestClient, pid: uuid.UUID, path: Path, **headers: str):  # type: ignore[no-untyped-def]
     return client.post(
         f"/api/projects/{pid}/deck",
         content=path.read_bytes(),
         headers={"X-SeeHere-Filename": quote(path.name), **ACTION, **headers},
     )
-
-
-def _run_all(sessions: Sessions, settings: Settings) -> None:
-    kinds = ["media.prepare", "scenes.detect", "ocr.extract", "deck.ingest"]
-    worker = Worker({k: HANDLERS[k] for k in kinds}, settings=settings, sessions=sessions)
-    while worker.run_once():
-        pass
 
 
 def test_upload_then_pages_align_to_keyframes(
@@ -221,7 +184,7 @@ def test_upload_then_pages_align_to_keyframes(
     deck: Path,
     tmp_path: Path,
 ) -> None:
-    pid = _project(sessions, settings, deck)
+    pid = add_project(sessions, settings, deck)
     assert client.get(f"/api/projects/{pid}/deck").json()["available"] is False
     pptx = make_pptx([TEXT_1, TEXT_2, APPENDIX], tmp_path / "lecture.pptx")
 
@@ -232,7 +195,7 @@ def test_upload_then_pages_align_to_keyframes(
         "pptx",
         False,
     )
-    _run_all(sessions, settings)  # the deck is read, then realigned once OCR finishes
+    run_jobs(sessions, settings, DECK_CHAIN)  # the deck is read, then realigned once OCR finishes
 
     body = client.get(f"/api/projects/{pid}/deck").json()
     assert body["ingested"] is True
@@ -252,12 +215,12 @@ def test_replacing_a_deck_removes_the_old_one(
     deck: Path,
     tmp_path: Path,
 ) -> None:
-    pid = _project(sessions, settings, deck)
+    pid = add_project(sessions, settings, deck)
     assert _post_deck(client, pid, make_pptx([TEXT_1], tmp_path / "a.pptx")).status_code == 201
     assert _post_deck(client, pid, make_pdf([TEXT_2], tmp_path / "b.pdf")).status_code == 201
     files = sorted(p.name for p in (settings.media_dir / "projects" / str(pid)).glob("deck-*"))
     assert len(files) == 1 and files[0].endswith(".pdf")
-    _run_all(sessions, settings)
+    run_jobs(sessions, settings, DECK_CHAIN)
     body = client.get(f"/api/projects/{pid}/deck").json()
     assert (body["filename"], body["kind"], [p["page"] for p in body["pages"]]) == (
         "b.pdf",
@@ -273,7 +236,7 @@ def test_deck_upload_rules(
     deck: Path,
     tmp_path: Path,
 ) -> None:
-    pid = _project(sessions, settings, deck)
+    pid = add_project(sessions, settings, deck)
     pdf = make_pdf([TEXT_1], tmp_path / "d.pdf")
     r = client.post(f"/api/projects/{pid}/deck", content=pdf.read_bytes())
     assert (r.status_code, r.json()["error"]["code"]) == (403, "missing_request_header")

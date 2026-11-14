@@ -3,15 +3,13 @@ No mocks: the real tesseract binary, the real worker and Postgres."""
 
 from __future__ import annotations
 
-import shutil
-import uuid
-from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from pipeline_project import add_project, run_jobs
 from slide_images import SLIDE_1, SLIDE_2, make_deck_video, render
 from slide_images import norm as _norm
 from sqlalchemy import select
@@ -19,17 +17,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.api.main import app
 from seehere.core.config import Settings, get_settings
-from seehere.db.enums import JobStatus, MediaKind
-from seehere.db.models import Job, MediaAsset, Project
+from seehere.db.enums import JobStatus
+from seehere.db.models import Job
 from seehere.db.session import get_db
-from seehere.jobs.worker import Worker
 from seehere.media import normalize, ocr, scenes
 from seehere.media.ocr import OcrError, OcrLine, parse_tsv, read_text
-from seehere.media.storage import MediaStore, source_video_path
-from seehere.pipeline import HANDLERS, start_pipeline
 from seehere.text.numbers import extract_numbers
 
 Sessions = sessionmaker[Session]
+OCR_CHAIN = (normalize.JOB_KIND, scenes.JOB_KIND, ocr.JOB_KIND)
 
 
 def _iou(a: tuple[float, ...], line: OcrLine) -> float:
@@ -110,38 +106,6 @@ def deck(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return make_deck_video(tmp_path_factory.mktemp("deck"))
 
 
-def _project(sessions: Sessions, settings: Settings, video: Path) -> uuid.UUID:
-    with sessions() as s:
-        project = Project(title="Deck", rights_confirmed_at=datetime.now(UTC))
-        s.add(project)
-        s.flush()
-        rel = source_video_path(project.id, ".mp4")
-        media = MediaAsset(
-            project_id=project.id,
-            kind=MediaKind.SOURCE_VIDEO,
-            original_filename="deck.mp4",
-            storage_path=rel,
-            mime_type="video/mp4",
-            size_bytes=video.stat().st_size,
-            sha256="0" * 64,
-        )
-        s.add(media)
-        s.flush()
-        dest = MediaStore(settings.media_dir).resolve(rel)
-        dest.parent.mkdir(parents=True)
-        shutil.copyfile(video, dest)
-        start_pipeline(s, project.id, media.id)
-        s.commit()
-        return project.id
-
-
-def _run(sessions: Sessions, settings: Settings) -> None:
-    kinds = (normalize.JOB_KIND, scenes.JOB_KIND, ocr.JOB_KIND)
-    worker = Worker({k: HANDLERS[k] for k in kinds}, settings=settings, sessions=sessions)
-    while worker.run_once():
-        pass
-
-
 def _client_get(sessions: Sessions, settings: Settings, url: str) -> dict:
     def db():  # type: ignore[no-untyped-def]
         with sessions() as s:
@@ -160,12 +124,12 @@ def _client_get(sessions: Sessions, settings: Settings, url: str) -> dict:
 
 def test_keyframe_text_end_to_end(sessions: Sessions, tmp_path: Path, deck: Path) -> None:
     settings = Settings(media_dir=tmp_path / "media", job_heartbeat_interval_s=0.2)
-    pid = _project(sessions, settings, deck)
+    pid = add_project(sessions, settings, deck)
     assert _client_get(sessions, settings, f"/api/projects/{pid}/ocr") == {
         "available": False,
         "keyframes": [],
     }
-    _run(sessions, settings)
+    run_jobs(sessions, settings, OCR_CHAIN)
 
     body = _client_get(sessions, settings, f"/api/projects/{pid}/ocr")
     assert body["available"] is True
@@ -184,7 +148,7 @@ def test_keyframe_text_end_to_end(sessions: Sessions, tmp_path: Path, deck: Path
         from seehere.jobs import queue
 
         queue.retry(s, job.id)
-    _run(sessions, settings)
+    run_jobs(sessions, settings, OCR_CHAIN)
     assert _client_get(sessions, settings, f"/api/projects/{pid}/ocr") == body
 
 
@@ -196,8 +160,8 @@ def test_missing_tesseract_is_retried_with_a_message(
         job_heartbeat_interval_s=0.2,
         tesseract_bin="/nonexistent/tesseract",
     )
-    pid = _project(sessions, settings, deck)
-    _run(sessions, settings)
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, OCR_CHAIN)
     with sessions() as s:
         job = s.scalars(select(Job).where(Job.project_id == pid, Job.kind == ocr.JOB_KIND)).one()
     assert (job.status, job.attempts, job.error) == (
