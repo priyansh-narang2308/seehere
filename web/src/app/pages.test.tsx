@@ -5,7 +5,6 @@ import NotFound from "./not-found";
 import Home from "./page";
 import MethodologyPage from "./methodology/page";
 import ProjectsPage from "./projects/page";
-import ResultsPage from "./projects/[projectId]/results/page";
 import StatusPage from "./status/page";
 import UploadPage from "./upload/page";
 import { ToastProvider } from "@/components/ui/toast";
@@ -13,15 +12,14 @@ import { pipelineStages } from "@/lib/pipeline";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/" }));
 
-// The Processing page loads its project on the server (server-only module); its content is
-// covered by the SourceFacts tests and the browser check, so it is not rendered here.
+// The Processing and Results pages load their project on the server (server-only module); its content is
+// covered by component tests and the browser check, so they are not rendered here.
 
 const pages: [string, () => React.ReactElement][] = [
   ["Home", Home],
   ["Upload", UploadPage],
   ["Projects", ProjectsPage],
   ["Methodology", MethodologyPage],
-  ["Results", ResultsPage],
   ["Status", StatusPage],
   ["Not found", NotFound],
 ];

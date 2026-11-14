@@ -226,6 +226,21 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, "http_error", `The server responded with ${res.status}.`);
 }
 
+/** Absolute URL for an API path the server returned (audio clips, exports, the video). */
+export const apiUrl = (path: string) => `${API_BASE}${path}`;
+
+export type ExportFile = {
+  id: string;
+  kind: "webvtt" | "cue_audio_zip" | "standard_mp4" | "extended_mp4" | "transcript_html" | "manifest_json" | "bundle_zip";
+  filename: string;
+  size_bytes: number;
+  sha256: string;
+  url: string;
+  created_at: string;
+};
+
+export type Exports = { available: boolean; files: ExportFile[] };
+
 export async function getJson<T>(path: string, init?: RequestInit, base = API_BASE): Promise<T> {
   let res: Response;
   try {

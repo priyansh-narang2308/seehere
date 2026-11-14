@@ -245,3 +245,7 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert all(d["evidence"] and d["checks"] for d in manifest["descriptions"])
     html = client.get(files["transcript.html"]["url"]).text
     assert '<html lang="en">' in html and "Description:" in html
+
+    # The player streams the lecture with range requests, so it can seek.
+    part = client.get(f"/api/projects/{pid}/video", headers={"Range": "bytes=0-99"})
+    assert part.status_code == 206 and len(part.content) == 100

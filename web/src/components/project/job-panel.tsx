@@ -60,6 +60,9 @@ const STAGES: Record<string, string> = {
   verify: "Checking claims against the evidence",
   schedule: "Fitting descriptions into pauses",
   synthesize: "Generating the description voice",
+  timing: "Re-scheduling with measured audio",
+  render: "Rendering the described videos",
+  export: "Writing export files",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";

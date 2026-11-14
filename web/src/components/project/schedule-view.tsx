@@ -2,7 +2,7 @@
 
 import { CalendarClock, Pause } from "lucide-react";
 import { useState } from "react";
-import type { Schedule, SolverResult } from "@/lib/api";
+import { apiUrl, type Schedule, type SolverResult } from "@/lib/api";
 
 /** m:ss.t, truncated (not rounded) so 7.89 s reads 0:07.8. */
 const at = (s: number) => {
@@ -101,7 +101,7 @@ export function ScheduleView({ standard, extended, durationS }: { standard: Sche
                       </span>
                     )}
                     {p.audio_url && (
-                      <audio controls preload="none" src={p.audio_url} aria-label={`Play: ${p.text}`} className="h-8 max-w-full" />
+                      <audio controls preload="none" src={apiUrl(p.audio_url)} aria-label={`Play: ${p.text}`} className="h-8 max-w-full" />
                     )}
                   </span>
                 </li>

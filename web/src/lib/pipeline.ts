@@ -97,7 +97,7 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "timing",
     name: "Timing check",
     summary: "Descriptions whose real audio does not fit their pause are re-scheduled or dropped.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "review",
@@ -109,7 +109,7 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "export",
     name: "Export",
     summary: "WebVTT descriptions, audio, a described video and an accessible transcript.",
-    status: "not_built",
+    status: "built",
   },
 ];
 

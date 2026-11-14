@@ -25,6 +25,7 @@ from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, Header, Request
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -36,7 +37,12 @@ from seehere.db.enums import MediaKind, ProjectStatus
 from seehere.db.models import MediaAsset, Project
 from seehere.db.session import get_db
 from seehere.media.probe import VideoProbe, inspect_lecture_video
-from seehere.media.storage import MediaStore, sanitize_filename, source_video_path
+from seehere.media.storage import (
+    MediaStore,
+    UnsafePathError,
+    sanitize_filename,
+    source_video_path,
+)
 from seehere.pipeline import start_pipeline
 
 router = APIRouter(prefix="/api", tags=["projects"])
@@ -221,3 +227,30 @@ def get_project(project_id: uuid.UUID, db: DbDep) -> ProjectOut:
     if project is None:
         raise APIError(404, "not_found", "No project with this ID.")
     return ProjectOut.from_model(project)
+
+
+@router.get("/projects/{project_id}/video", response_class=FileResponse)
+def source_video(project_id: uuid.UUID, db: DbDep, settings: SettingsDep) -> FileResponse:
+    """The uploaded lecture for the player. Range requests are supported, so it can seek."""
+    media = db.scalars(
+        select(MediaAsset).where(
+            MediaAsset.project_id == project_id, MediaAsset.kind == MediaKind.SOURCE_VIDEO
+        )
+    ).first()
+    if media is None:
+        raise APIError(404, "not_found", "No video for this project.")
+    try:
+        path = MediaStore(settings.media_dir).resolve(media.storage_path)
+    except UnsafePathError as exc:
+        raise APIError(404, "not_found", "No video for this project.") from exc
+    if not path.is_file():
+        raise APIError(404, "not_found", "The video is no longer stored.")
+    return FileResponse(
+        path,
+        media_type=media.mime_type,
+        headers={
+            "Cache-Control": "private, max-age=3600",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": "inline",
+        },
+    )
