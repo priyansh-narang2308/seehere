@@ -472,3 +472,80 @@
 ### Known limitations
 - Word overlap, not meaning: a paraphrase ("sales went up") is not counted as said.
 - A coverage job already running when new input lands is not restarted (same as the deck stage).
+
+## Task 14: Visual reference resolution (2026-11-14) ✅
+
+### Implemented
+- **Job `references.resolve`** (queued by seen-versus-said) → `reference_link`.
+- **Detection** (rule-based, conservative):
+  - A demonstrative plus a visual noun within three words ("this blue line here", "these two bars").
+  - A vague noun only with here/there ("that one here").
+  - Bare pointers ("right here", "as you can see").
+  - Not matched: "this is", "at this point", "this part of the argument".
+- **Linking:** each unit on screen when the phrase starts is scored on three kinds of evidence, combined as independent evidence:
+  - words or numbers shared with the phrase and the next 4 s of speech;
+  - the noun naming the unit's kind;
+  - a position word matching its box. A stated position that does not match cuts the score.
+- **Confidence:** a lone candidate starts at 0.5; with several, confidence is the best score's lead over the runner-up.
+  - At or above 0.5 (config) → **linked**.
+  - Below → **ambiguous / needs review**, with no unit stored (flagged, not guessed).
+  - Nothing on screen → **unresolved**.
+- **`GET /api/projects/{id}/references`**.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_references.py` (15) | 10 detection cases, including the non-pointers. Linking by a spoken number, by shared words, and by kind and position. Equal matches → ambiguous with confidence 0. A lone unit links at 0.5; nothing on screen → unresolved |
+| Live | TTS lecture: "look at this number here, forty one point seven percent" → **linked to "Operating margin 41.7% in 2022" (0.90)**. "Now this line matters" on a 2-line text slide → **ambiguous, needs review** |
+
+### Known limitations
+- No gaze or cursor tracking: pointers are resolved from words, kind and position only.
+- With OCR-only units, "this chart" cannot match a chart (all units are text blocks) and is flagged.
+
+## Task 15: Evidence ledger backend (2026-11-14) ✅
+
+### Implemented
+- Every cue gets `evidence` rows:
+  - its visual unit;
+  - the keyframe;
+  - the OCR lines inside the unit's box;
+  - the aligned deck page;
+  - each spoken reference that pointed at it;
+  - the speech while it was shown.
+- **`GET /api/cues/{id}/evidence`** resolves each row to its source:
+  - frame time and image URL;
+  - OCR text, confidence and box;
+  - deck page text and score;
+  - the unit's box, span, coverage and said/unsaid items;
+  - the transcript span text with times.
+  - It also returns the verification checks (empty until Task 17).
+- **`GET /api/projects/{id}/cues`** lists cues by time.
+
+### Tests
+- In `test_descriptions.py`, the margin cue's ledger has these rows in a stable order: frame (image served), OCR line, the reference span "this number here", the speech span, and the unit (0–5 s). There are 404s for an unknown cue or project.
+- **Every number in every wording appears in the cue's own OCR evidence.**
+
+## Task 16: Description generation (2026-11-14) ✅
+
+### Implemented
+- **Job `descriptions.generate`** (queued by references). One cue per unit that was not fully said, at its first such appearance, so a revisited slide is not described twice.
+- **Wordings are assembled from the unit's own fields only, never paraphrased.**
+  - **Short:** `On screen: “line”.` or `Chart: label.`
+  - **Medium:** adds up to 2 more lines.
+  - **Long:** adds the vision model's details and up to 5 lines.
+  - Lines over 15 words are cut at a word with "…". A variant that adds nothing is left empty.
+- A unit someone **pointed at** is anchored at that moment with priority +0.2. Every cue starts as **needs review**.
+- **Silent lectures:** coverage now waits for speech-to-text to finish rather than for words, so a lecture without speech still gets descriptions (everything is unsaid).
+- **Fix:** plural folding no longer turns "lines" into "lin".
+- **Web:** "Spoken references" (linked / needs review / nothing on screen) and "Descriptions", each with Show evidence: keyframe with the region outlined, OCR line and confidence, the spoken reference, the speech while shown, and the coverage. Stages 09–10 marked built.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_descriptions.py` (5) | Wordings (quoted text, chart with details, long-line cut). End to end: 5 cues (revisit not repeated), the margin cue anchored at its reference, full ledger, no unsupported numbers. A silent lecture gets all 5 cues and no references |
+| Backend / Web | **243 passed, 2 skipped** / **113 passed**; `make check` and `next build` pass |
+| Live | 5 cues for the pointers demo; the margin cue at 0:04 with the region outlined exactly on its line in the browser |
+
+### Known limitations
+- Template wording: accurate, but plain ("On screen: …"). No language model rewrites it yet.
+- Regenerating replaces all cues; preserving instructor edits comes with Task 26.
