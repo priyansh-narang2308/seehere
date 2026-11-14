@@ -28,6 +28,7 @@ from seehere.media.storage import MediaStore, project_dir
 from seehere.providers.base import TextToSpeech
 from seehere.providers.tts_piper import PiperError, PiperTTS, PiperVoiceMissing
 from seehere.providers.tts_vultr import VultrTTS
+from seehere.schedule.timing import queue_timing_check
 
 log = logging.getLogger("seehere.tts")
 
@@ -139,6 +140,7 @@ def synthesize_speech(ctx: JobContext, job: ClaimedJob) -> None:
                 )
             )
             ctx.progress("synthesize", (i + 1) / len(todo))
+        queue_timing_check(s, pid)
         s.commit()
     log.info("project %s: %d clips synthesized, %d reused", pid, len(todo), len(keep))
 
