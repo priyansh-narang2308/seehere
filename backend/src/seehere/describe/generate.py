@@ -31,6 +31,7 @@ from seehere.db.models import (
     TranscriptWord,
     VisualUnit,
 )
+from seehere.describe.verify import queue_verification
 from seehere.jobs import queue
 from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
@@ -198,6 +199,7 @@ def generate_descriptions(ctx: JobContext, job: ClaimedJob) -> None:
             cues.append(cue)
         ctx.check_cancelled()
         s.add_all(cues)
+        queue_verification(s, pid)
         s.commit()
     log.info("project %s: %d description cues from %d units", pid, len(cues), len(units))
     ctx.progress("write", 1.0)
