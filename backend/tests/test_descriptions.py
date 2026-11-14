@@ -216,3 +216,32 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
         assert p["audio_s"] > 0.3
         wav = client.get(p["audio_url"])
         assert wav.status_code == 200 and wav.content[:4] == b"RIFF"
+
+    # Timing check: re-solves with measured audio (at most 3 rounds), then the export is built.
+    run_jobs(sessions, settings, ("speech.synthesize", "timing.check", "schedule.plan"))
+    final = client.get(f"/api/projects/{pid}/schedule").json()
+    for p in final["placements"]:  # every voiced description now fits its slot exactly
+        assert p["audio_s"] is not None and p["audio_s"] <= p["end_s"] - p["start_s"] + 0.001
+    run_jobs(sessions, settings, ("export.build",))
+    files = {f["filename"]: f for f in client.get(f"/api/projects/{pid}/exports").json()["files"]}
+    assert set(files) == {
+        "descriptions.vtt",
+        "cue-audio.zip",
+        "lecture-described.mp4",
+        "lecture-extended.mp4",
+        "transcript.html",
+        "manifest.json",
+        "seehere-export.zip",
+    }
+    vtt = client.get(files["descriptions.vtt"]["url"])
+    assert vtt.headers["content-disposition"].startswith("attachment")
+    assert vtt.text.startswith("WEBVTT\nKind: descriptions")
+    assert vtt.text.count(" --> ") == len(final["placements"])
+    manifest = client.get(files["manifest.json"]["url"]).json()
+    assert "not a WCAG conformance certification" in manifest["notice"]
+    assert {d["cue_id"] for d in manifest["descriptions"] if d["mode"] == "standard"} == {
+        p["cue_id"] for p in final["placements"]
+    }
+    assert all(d["evidence"] and d["checks"] for d in manifest["descriptions"])
+    html = client.get(files["transcript.html"]["url"]).text
+    assert '<html lang="en">' in html and "Description:" in html
