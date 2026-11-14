@@ -1,0 +1,14 @@
+$ curl -s http://169.254.169.254/v1.json | jq -c .region
+{"countrycode":"IN","regioncode":"BOM"}
+
+$ docker compose -f docker-compose.prod.yml ps --format "table {{.Service}}\t{{.Status}}"
+SERVICE   STATUS
+api       Up 25 minutes (healthy)
+caddy     Up 26 minutes
+db        Up 26 minutes (healthy)
+web       Up 12 minutes (healthy)
+worker    Up 25 minutes
+
+$ curl -s https://65-20-87-43.sslip.io/api/health | jq -c "{status, environment}"
+{"status":"ok","environment":"production"}
+
