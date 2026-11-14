@@ -19,10 +19,12 @@ import {
   type PreparedMedia,
   type OcrResult,
   type Transcript,
+  type Visuals,
 } from "@/lib/api";
 import { DeckSection } from "./deck-section";
 import { OcrView } from "./ocr-view";
 import { TranscriptView } from "./transcript-view";
+import { VisualsView } from "./visuals-view";
 
 const POLL_MS = 1000;
 /** After this long in the queue with no attempt yet, say that no worker seems to be running. */
@@ -46,6 +48,7 @@ const STAGES: Record<string, string> = {
   compare: "Comparing frames",
   read: "Reading on-screen text",
   align: "Matching pages to the video",
+  analyze: "Finding charts, tables and text",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -59,6 +62,8 @@ export function JobPanel({ projectId }: { projectId: string }) {
   const transcriptLoadedFor = useRef<string | null>(null);
   const [ocr, setOcr] = useState<OcrResult | null>(null);
   const ocrLoadedFor = useRef<string | null>(null);
+  const [visuals, setVisuals] = useState<Visuals | null>(null);
+  const visualsLoadedFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -117,6 +122,20 @@ export function JobPanel({ projectId }: { projectId: string }) {
         if (!read) {
           ocrLoadedFor.current = null;
           setOcr(null);
+        }
+        // Units appear after visual analysis; scores arrive when seen-versus-said finishes.
+        const units = next.jobs.find((j) => j.kind === "visual.analyze" && j.status === "succeeded");
+        const scored = next.jobs.find((j) => j.kind === "coverage.score" && j.status === "succeeded");
+        const unitsKey = units ? `${units.id}:${units.finished_at}:${scored?.finished_at ?? ""}` : null;
+        if (unitsKey && visualsLoadedFor.current !== unitsKey) {
+          visualsLoadedFor.current = unitsKey;
+          getJson<Visuals>(`/api/projects/${projectId}/visuals`, { signal: controller.signal })
+            .then((v) => setVisuals(v.available ? v : null))
+            .catch(() => {});
+        }
+        if (!units) {
+          visualsLoadedFor.current = null;
+          setVisuals(null);
         }
         const active = next.jobs.some(isActive);
         if (active) timer = setTimeout(refresh, POLL_MS);
@@ -188,6 +207,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
       )}
       {media && <PreparedOutputs media={media} />}
       {ocr && <OcrView ocr={ocr} />}
+      {visuals && <VisualsView visuals={visuals} />}
       <DeckSection projectId={projectId} version={deckVersion} onUploaded={refresh} />
       {transcript && <TranscriptView transcript={transcript} />}
     </section>

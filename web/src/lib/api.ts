@@ -91,6 +91,33 @@ export type OcrResult = {
   }[];
 };
 
+export type VisualKind = "chart" | "diagram" | "table" | "equation" | "text_block" | "image" | "other";
+
+/** Visual units ranked by how much they need describing (Tasks 12-13). */
+export type Visuals = {
+  available: boolean;
+  scored: boolean;
+  units: {
+    id: string;
+    frame_id: string;
+    kind: VisualKind;
+    label: string;
+    lines: string[];
+    details: string;
+    x: number | null;
+    y: number | null;
+    w: number | null;
+    h: number | null;
+    t_start_s: number;
+    t_end_s: number;
+    source: string;
+    coverage: number | null;
+    priority: number | null;
+    said: string[];
+    unsaid: string[];
+  }[];
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Deck, Job, JobList, PreparedMedia, Transcript } from "@/lib/api";
+import type { Deck, Job, JobList, PreparedMedia, Transcript, Visuals } from "@/lib/api";
 import { JobPanel } from "./job-panel";
 
 const refresh = vi.fn();
@@ -235,6 +235,43 @@ describe("JobPanel", () => {
     const list = within(screen.getByRole("list", { name: "Text by keyframe" }));
     expect(list.getByText("Quarterly Revenue")).toBeInTheDocument();
     expect(list.getByText("Rev 12.5%")).toHaveTextContent("Rev 12.5%(low confidence)");
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  it("lists visual content by priority with what was not said aloud", async () => {
+    const analyzed = job({ id: "job-5", kind: "visual.analyze", label: "Visual analysis", status: "succeeded", progress: 1, finished_at: NOW });
+    const scored = job({ id: "job-6", kind: "coverage.score", label: "Seen versus said", status: "succeeded", progress: 1, finished_at: NOW });
+    const unit = {
+      frame_id: "k0",
+      lines: [],
+      details: "",
+      x: 0.06,
+      y: 0.3,
+      w: 0.5,
+      h: 0.06,
+      t_start_s: 0,
+      t_end_s: 5,
+      source: "ocr",
+    };
+    const visuals: Visuals = {
+      available: true,
+      scored: true,
+      units: [
+        { ...unit, id: "u1", kind: "text_block", label: "Operating margin 41.7% in 2022", coverage: 0, priority: 0.6, said: [], unsaid: ["margin", "41.7%"] },
+        { ...unit, id: "u2", kind: "chart", label: "Revenue rose 12.5%", coverage: 0.75, priority: 0.25, said: ["revenue"], unsaid: [] },
+      ],
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), analyzed, scored]], (url) =>
+      url.endsWith("/visuals") ? visuals : undefined,
+    );
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    const list = within(await screen.findByRole("list", { name: "Visual content by priority" }));
+    const items = list.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Operating margin 41.7% in 2022");
+    expect(items[0]).toHaveTextContent("0% said aloud · not said: margin, 41.7%");
+    expect(items[1]).toHaveTextContent("Chart");
+    expect(items[1]).toHaveTextContent("75% said aloud");
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });

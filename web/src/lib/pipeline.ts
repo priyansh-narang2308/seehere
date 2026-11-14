@@ -53,14 +53,15 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "vision",
     name: "Visual analysis",
-    summary: "A vision model lists what is on screen: charts, diagrams, labels and their regions.",
-    status: "not_built",
+    summary:
+      "What is on screen, with its region and when it is shown: text blocks from OCR, plus charts and diagrams from an optional vision model (not yet live-tested).",
+    status: "built",
   },
   {
     id: "seen-said",
     name: "Seen versus said",
     summary: "Each visual is compared with what the lecturer says around it. Unspoken visuals are prioritized.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "references",
