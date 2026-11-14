@@ -115,6 +115,10 @@ class Job(UUIDPrimaryKey, Timestamps, Base):
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # One entry per attempt: run/CPU time, memory and hosted-provider calls (Task 33).
+    metrics: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
 
     project: Mapped[Project] = relationship(back_populates="jobs")
 

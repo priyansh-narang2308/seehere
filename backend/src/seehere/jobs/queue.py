@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import and_, case, exists, func, select, update
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import and_, case, exists, func, literal, select, update
+from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.orm import Session
 
 from seehere.db.enums import JobStatus, ProjectStatus
@@ -237,6 +237,17 @@ def fail(
     ).scalar_one_or_none()
     session.commit()
     return status
+
+
+def record_metrics(session: Session, job_id: uuid.UUID, attempt: dict[str, Any]) -> None:
+    """Append one attempt's measurements. Not lease-guarded: the numbers are true either way."""
+    session.execute(
+        update(Job)
+        .where(Job.id == job_id)
+        .values(metrics=Job.metrics.op("||")(literal([attempt], JSONB)))
+        .execution_options(synchronize_session=False)
+    )
+    session.commit()
 
 
 def mark_cancelled(session: Session, job_id: uuid.UUID, worker_id: str) -> bool:

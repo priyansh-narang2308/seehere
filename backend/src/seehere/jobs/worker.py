@@ -22,6 +22,7 @@ from types import FrameType
 from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.core.config import Settings, get_settings
+from seehere.core.usage import Measurement, measure
 from seehere.db.session import get_sessionmaker
 from seehere.jobs import queue
 from seehere.jobs.errors import JobCancelled, PermanentJobError, RetryableJobError
@@ -119,15 +120,20 @@ class Worker:
         beat = _Heartbeat(ctx, cfg.job_heartbeat_interval_s)
         beat.start()
         log.info("job %s (%s) started, attempt %d", job.id, job.kind, job.attempts)
+        outcome = "succeeded"
+        measured = Measurement()
         try:
             with self.sessions() as s:
                 queue.refresh_project_status(s, job.project_id)
-            self.handlers[job.kind](ctx, job)
+            with measure() as measured:
+                self.handlers[job.kind](ctx, job)
         except JobCancelled:
+            outcome = "cancelled"
             with self.sessions() as s:
                 queue.mark_cancelled(s, job.id, self.worker_id)
             log.info("job %s cancelled", job.id)
         except PermanentJobError as exc:
+            outcome = "failed"
             with self.sessions() as s:
                 queue.fail(
                     s,
@@ -142,6 +148,7 @@ class Worker:
         except Exception as exc:
             # Unknown errors are logged in full here but shown to users only generically.
             log.exception("job %s raised", job.id)
+            outcome = "error"
             message = (
                 exc.message
                 if isinstance(exc, RetryableJobError)
@@ -167,6 +174,15 @@ class Worker:
         finally:
             beat.stopped.set()
             beat.join()
+            try:
+                with self.sessions() as s:
+                    queue.record_metrics(
+                        s,
+                        job.id,
+                        {"attempt": job.attempts, "outcome": outcome, **measured.as_json()},
+                    )
+            except Exception:  # measurements must never change a job's outcome
+                log.warning("could not record metrics for job %s", job.id, exc_info=True)
             with self.sessions() as s:
                 queue.refresh_project_status(s, job.project_id)
 
