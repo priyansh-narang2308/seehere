@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BackendStatus } from "@/components/BackendStatus";
+import { PipelineMetrics } from "@/components/PipelineMetrics";
 import { Container, PageHeader } from "@/components/layout/page";
 
 export const metadata: Metadata = {
@@ -16,6 +17,9 @@ export default function StatusPage() {
       />
       <div className="mt-8">
         <BackendStatus />
+      </div>
+      <div className="mt-12">
+        <PipelineMetrics />
       </div>
     </Container>
   );

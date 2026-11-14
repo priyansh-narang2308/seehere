@@ -449,3 +449,29 @@ export function titleFromFilename(name: string): string {
     .trim()
     .slice(0, 200);
 }
+
+/** Hosted-model calls for one operation, with spend estimated only from configured prices. */
+export type ProviderSpend = {
+  operation: string;
+  calls: number;
+  failed: number;
+  units: Record<string, number>;
+  mean_latency_ms: number;
+  estimated_cost_usd: number | null;
+};
+
+/** Measured run time per pipeline stage over every job still stored (GET /api/metrics). */
+export type MetricsSummary = {
+  stages: {
+    kind: string;
+    attempts: number;
+    failed: number;
+    p50_run_s: number;
+    p95_run_s: number;
+    max_run_s: number;
+    mean_cpu_s: number;
+    max_peak_rss_mb: number;
+  }[];
+  providers: ProviderSpend[];
+  prices_configured: boolean;
+};
