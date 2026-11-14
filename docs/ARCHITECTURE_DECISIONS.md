@@ -9,7 +9,7 @@ Format: Context → Options → Decision → Consequences. Status: Accepted unle
 - **Consequences:** a single point of failure, accepted for a demo and mitigated by a snapshot plus a pre-processed sample. Vertical resize is the scaling path.
 
 ## ADR-002: Backend in Python 3.12 + FastAPI + Pydantic v2
-- **Context:** the pipeline needs FFmpeg, OCR, OR-Tools, faster-whisper, PyMuPDF and python-pptx, all Python-first.
+- **Context:** the pipeline needs FFmpeg, OCR, OR-Tools, faster-whisper, pypdf and PPTX parsing, all Python-first.
 - **Options:** Node/TS backend; Python FastAPI; Django.
 - **Decision:** FastAPI, with typed Pydantic models and an OpenAPI schema at `/api/docs`.
 - **Why 3.12 and not the host's 3.13:** CTranslate2 (faster-whisper) and OR-Tools wheels are most reliable on 3.12. Managed by **uv** with a lockfile.

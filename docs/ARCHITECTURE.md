@@ -131,7 +131,7 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source â
 3. **Speech windows:** gaps â‰¥ threshold between words, padded, become safe placement windows.
 4. **Scenes/slides:** sampled frames, scene-change detection and perceptual-hash dedupe give keyframes.
 5. **OCR:** Tesseract TSV gives text, boxes and confidence per keyframe.
-6. **Slides (optional upload):** PDF (PyMuPDF) / PPTX (python-pptx, safe unzip) text, aligned to keyframes.
+6. **Slides (optional upload):** PDF (pypdf) / PPTX (in-memory zip with guards, defusedxml) text, aligned to keyframes.
 7. **Vision:** a Vultr VLM with a JSON schema returns visual units (kind, label, values, region). The response is schema-validated before storage.
 8. **Seen vs said:** each unit's coverage against nearby transcript (normalized tokens + numbers).
 9. **Deixis:** "this / here / the blue line" phrases are linked to a region via colour/label match, OCR boxes, pointer/highlight cues and temporal continuity. Each link gets a confidence; below the threshold it becomes NEEDS REVIEW.

@@ -48,7 +48,7 @@ No new backend packages: upload streaming uses FastAPI/Starlette and the standar
 No new dependencies. The job queue uses Postgres and SQLAlchemy; media preparation calls the existing FFmpeg/FFprobe binaries.
 
 ## Planned (added in their tasks; licence re-checked when added)
-OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · PyMuPDF (**AGPL-3.0**: acceptable for a public open-source repo; otherwise use pypdf) · python-pptx (MIT) · Piper TTS (MIT; voice licences per voice).
+OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (MIT; voice licences per voice).
 
 ## Baseline (not part of our product)
 microsoft/ai-audio-descriptions (MIT) is run unmodified as a comparison baseline in Task 29, with attribution. Its code is not copied into SeeHere.
