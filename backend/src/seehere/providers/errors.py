@@ -26,12 +26,16 @@ class ProviderError(RuntimeError):
         )
 
 
-def job_error(exc: ProviderError, service: str) -> PermanentJobError | RetryableJobError:
+def job_error(
+    exc: ProviderError, service: str, key_hint: str | None = None
+) -> PermanentJobError | RetryableJobError:
     """The job outcome for a provider failure, with a message safe to show users."""
     if exc.status in (401, 403):
+        hint = key_hint or (
+            "Check VULTR_INFERENCE_API_KEY and that the Serverless Inference subscription is active"
+        )
         return PermanentJobError(
-            f"{service} rejected the API key (HTTP {exc.status}). Check VULTR_INFERENCE_API_KEY "
-            "and that the Serverless Inference subscription is active, then retry."
+            f"{service} rejected the API key (HTTP {exc.status}). {hint}, then retry."
         )
     if exc.retryable:
         detail = f"HTTP {exc.status}" if exc.status else "no response"

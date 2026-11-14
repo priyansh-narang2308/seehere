@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,12 +20,12 @@ import pytest
 from pipeline_project import add_project, run_jobs
 from pydantic import SecretStr
 from slide_images import SLIDE_1, make_deck_video, render
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from seehere.core.config import Settings
 from seehere.db.enums import VisualKind
-from seehere.db.models import Frame, VisualUnit
+from seehere.db.models import Frame, Job, VisualUnit
 from seehere.providers.base import Capability, VerificationState
 from seehere.providers.vision_vultr import (
     VisionError,
@@ -146,6 +148,62 @@ def test_live_vultr_vision(image: Path) -> None:  # pragma: no cover - needs app
     assert "12.5%" in text
 
 
+@pytest.mark.skipif(
+    os.environ.get("SEEHERE_LIVE_GEMINI_VISION") != "1",
+    reason="live Gemini call uses quota; set SEEHERE_LIVE_GEMINI_VISION=1 to run it",
+)
+def test_live_gemini_vision(image: Path) -> None:  # pragma: no cover - needs a key
+    settings = Settings(vision_provider="gemini")
+    if settings.gemini_api_key is None:
+        pytest.fail("GEMINI_API_KEY is empty")
+    analyzer = units_mod.make_analyzer(settings)
+    assert analyzer is not None and analyzer.service == "gemini"
+    out = analyzer.analyze(image, PROMPT, UNITS_SCHEMA)
+    text = " ".join(t for u in out["units"] for t in u["visible_text"])
+    assert "12.5%" in text
+    assert all(0 <= u["box"]["x"] <= 1 and 0 <= u["box"]["w"] <= 1 for u in out["units"])
+
+
+def test_schema_in_prompt_mode_uses_json_mode_and_still_validates(image: Path) -> None:
+    seen: list[dict[str, Any]] = []
+    replies = [_reply({"units": [{**CHART, "label": ""}]}), _reply({"units": [CHART]})]
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return replies.pop(0)
+
+    analyzer = VultrVisionAnalyzer(
+        SecretStr(KEY),
+        transport=httpx.MockTransport(handle),
+        service="gemini",
+        schema_in_prompt=True,
+    )
+    out = analyzer.analyze(image, PROMPT, UNITS_SCHEMA)
+    assert out == {"units": [CHART]}  # the invalid first reply was retried, not returned
+    assert seen[0]["response_format"] == {"type": "json_object"}
+    prompt = seen[0]["messages"][0]["content"][0]["text"]
+    assert prompt.startswith(PROMPT) and '"visible_text"' in prompt
+
+
+def test_provider_error_reason_is_kept_without_the_key(image: Path) -> None:
+    def handle(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json=[{"error": {"message": f"bad schema for key {KEY}"}}])
+
+    analyzer = VultrVisionAnalyzer(SecretStr(KEY), transport=httpx.MockTransport(handle))
+    with pytest.raises(VisionError) as caught:
+        analyzer.analyze(image, PROMPT, UNITS_SCHEMA)
+    assert "HTTP 400: bad schema for key <key>" in str(caught.value)
+    assert KEY not in str(caught.value) and caught.value.retryable is False
+
+
+def test_gemini_is_selected_only_when_asked_and_keyed() -> None:
+    assert units_mod.make_analyzer(Settings(vision_provider="none", gemini_api_key=KEY)) is None
+    assert units_mod.make_analyzer(Settings(vision_provider="gemini", gemini_api_key=None)) is None
+    g = units_mod.make_analyzer(Settings(vision_provider="gemini", gemini_api_key=KEY))
+    assert g is not None and g.service == "gemini" and "generativelanguage" in g.base_url
+    assert g.info().name.startswith("gemini:")
+
+
 # --- units ---
 
 
@@ -224,6 +282,7 @@ def test_model_units_replace_ocr_and_invalid_frames_keep_ocr(
     replies = [_reply({"units": [CHART]}), _reply("x"), _reply("y")]
     analyzer = _analyzer(replies, [])
     monkeypatch.setattr(units_mod, "make_analyzer", lambda _settings: analyzer)
+    settings.vision_concurrency = 1  # replies are consumed in keyframe order
     pid = add_project(sessions, settings, deck)
     run_jobs(sessions, settings, CHAIN)
     by_time: dict[float, list[VisualUnit]] = {}
@@ -235,6 +294,68 @@ def test_model_units_replace_ocr_and_invalid_frames_keep_ocr(
     assert {u.source for u in by_time[5.0]} == {"ocr"}
     assert [u.kind for u in by_time[9.0]] == [VisualKind.CHART]  # slide 1's second appearance
     assert not replies
+
+
+def test_keyframes_are_analysed_concurrently_and_every_call_is_metered(
+    sessions: Sessions, settings: Settings, deck: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    in_flight, peak = [0], [0]
+    lock = threading.Lock()
+
+    def handle(_: httpx.Request) -> httpx.Response:
+        with lock:
+            in_flight[0] += 1
+            peak[0] = max(peak[0], in_flight[0])
+        time.sleep(0.3)
+        with lock:
+            in_flight[0] -= 1
+        return _reply({"units": [CHART]})
+
+    analyzer = VultrVisionAnalyzer(SecretStr(KEY), transport=httpx.MockTransport(handle))
+    monkeypatch.setattr(units_mod, "make_analyzer", lambda _settings: analyzer)
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, CHAIN)
+    assert peak[0] == 2  # both keyframes were in flight at once
+    with sessions() as s:
+        job = s.scalars(
+            select(Job).where(Job.project_id == pid, Job.kind == "visual.analyze")
+        ).one()
+    [attempt] = job.metrics
+    calls = attempt["provider_calls"]
+    assert len(calls) == 2 and all(c["operation"] == "vision" for c in calls)
+
+
+@pytest.mark.parametrize(("status", "outcome"), [(429, "succeeded"), (401, "failed")])
+def test_an_unavailable_model_falls_back_to_ocr_but_a_rejected_key_fails(
+    sessions: Sessions,
+    settings: Settings,
+    deck: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    outcome: str,
+) -> None:
+    def handle(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, json={"error": {"message": "quota or key problem"}})
+
+    analyzer = VultrVisionAnalyzer(
+        SecretStr(KEY), transport=httpx.MockTransport(handle), service="gemini"
+    )
+    monkeypatch.setattr(units_mod, "make_analyzer", lambda _settings: analyzer)
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, CHAIN[:-1])
+    with sessions() as s:
+        s.execute(update(Job).where(Job.project_id == pid).values(max_attempts=1))
+        s.commit()
+    run_jobs(sessions, settings, CHAIN[-1:])
+    with sessions() as s:
+        job = s.scalars(
+            select(Job).where(Job.project_id == pid, Job.kind == "visual.analyze")
+        ).one()
+    assert job.status.value == outcome
+    if outcome == "succeeded":  # the lecture continues from on-screen text
+        assert {u.source for _, _, u in _units(sessions, pid)} == {"ocr"}
+    else:
+        assert "rejected the API key (HTTP 401). Check GEMINI_API_KEY" in (job.error or "")
 
 
 def test_appearances_split_revisits() -> None:

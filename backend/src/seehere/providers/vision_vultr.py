@@ -1,4 +1,5 @@
-"""Vision with structured JSON through Vultr Serverless Inference (OpenAI-compatible chat API).
+"""Vision with structured JSON through an OpenAI-compatible chat API: Vultr Serverless Inference,
+or Google Gemini through its OpenAI-compatible endpoint (same request format, different base URL).
 
 Every reply is parsed and validated against the requested JSON schema here, whatever the
 provider claims to enforce. An invalid reply is retried once with the validation error fed back;
@@ -55,6 +56,20 @@ def validate(reply: str, schema: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def _error_reason(r: httpx.Response, secret: str) -> str:
+    """The provider's own short explanation of an error, if it sent one, never the key."""
+    try:
+        body = r.json()
+    except ValueError:
+        return ""
+    err = body[0] if isinstance(body, list) and body else body
+    err = err.get("error", err) if isinstance(err, dict) else err
+    message = err.get("message") if isinstance(err, dict) else None
+    if not isinstance(message, str) or not message.strip():
+        return ""
+    return ": " + " ".join(message.replace(secret, "<key>").split())[:200]
+
+
 class VultrVisionAnalyzer:
     def __init__(
         self,
@@ -64,8 +79,14 @@ class VultrVisionAnalyzer:
         model: str = "qwen3.8-flash-next",
         timeout_s: float = 90.0,
         transport: httpx.BaseTransport | None = None,
+        service: str = "vultr",
+        schema_in_prompt: bool = False,
     ) -> None:
         self._api_key = api_key
+        self.service = service
+        # Some providers (Gemini) refuse large schemas for constrained decoding. Then the schema
+        # goes in the prompt with plain JSON mode; the reply is still validated here either way.
+        self.schema_in_prompt = schema_in_prompt
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_s = timeout_s
@@ -73,7 +94,7 @@ class VultrVisionAnalyzer:
 
     def info(self) -> ProviderInfo:
         return ProviderInfo(
-            name=f"vultr:{self.model}",
+            name=f"{self.service}:{self.model}",
             capabilities={Capability.VISION_STRUCTURED: VerificationState.DOCUMENTED},
             notes="Not yet exercised against the live service (calls cost credit).",
         )
@@ -85,6 +106,14 @@ class VultrVisionAnalyzer:
         mime = mimetypes.guess_type(image_path.name)[0] or "image/jpeg"
         return f"data:{mime};base64,{base64.b64encode(data).decode()}"
 
+    def _prompt(self, prompt: str, schema: dict[str, Any]) -> str:
+        if not self.schema_in_prompt:
+            return prompt
+        return (
+            f"{prompt}\n\nReply with one JSON object only, valid against this JSON Schema:\n"
+            f"{json.dumps(schema, separators=(',', ':'))}"
+        )
+
     def _ask(
         self, client: httpx.Client, messages: list[dict[str, Any]], schema: dict[str, Any]
     ) -> str:
@@ -92,10 +121,14 @@ class VultrVisionAnalyzer:
             "model": self.model,
             "messages": messages,
             "temperature": 0,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {"name": "visual_units", "schema": schema, "strict": True},
-            },
+            "response_format": (
+                {"type": "json_object"}
+                if self.schema_in_prompt
+                else {
+                    "type": "json_schema",
+                    "json_schema": {"name": "visual_units", "schema": schema, "strict": True},
+                }
+            ),
         }
         started = time.monotonic()
         try:
@@ -105,16 +138,19 @@ class VultrVisionAnalyzer:
                 json=body,
             )
         except httpx.HTTPError as exc:
-            record_call("vision", None, started)
+            record_call("vision", None, started, service=self.service)
             raise VisionError(f"request failed: {type(exc).__name__}") from None
         if r.status_code != 200:
-            record_call("vision", r.status_code, started)
-            raise VisionError(f"Vultr returned HTTP {r.status_code}", status=r.status_code)
+            record_call("vision", r.status_code, started, service=self.service)
+            reason = _error_reason(r, self._api_key.get_secret_value())
+            raise VisionError(
+                f"{self.service} returned HTTP {r.status_code}{reason}", status=r.status_code
+            )
         try:
             reply = r.json()
             content = str(reply["choices"][0]["message"]["content"])
         except (ValueError, KeyError, IndexError, TypeError):
-            record_call("vision", r.status_code, started)
+            record_call("vision", r.status_code, started, service=self.service)
             raise VisionError("unexpected response format") from None
         usage = reply.get("usage") if isinstance(reply, dict) else None
         tokens = {
@@ -122,7 +158,7 @@ class VultrVisionAnalyzer:
             for k in ("prompt_tokens", "completion_tokens")
             if isinstance(usage, dict) and isinstance(usage.get(k), int | float)
         }
-        record_call("vision", r.status_code, started, tokens)
+        record_call("vision", r.status_code, started, tokens, service=self.service)
         return content
 
     def analyze(self, image_path: Path, prompt: str, json_schema: dict[str, Any]) -> dict[str, Any]:
@@ -130,7 +166,7 @@ class VultrVisionAnalyzer:
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
+                    {"type": "text", "text": self._prompt(prompt, json_schema)},
                     {"type": "image_url", "image_url": {"url": self._image_url(image_path)}},
                 ],
             }
