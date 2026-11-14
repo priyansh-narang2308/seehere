@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" role="img" aria-labelledby="t d">
+  <title id="t">SeeHere product workflow</title>
+  <desc id="d">Five steps. An instructor uploads a lecture and optionally its slides. SeeHere processes it, showing each stage live. The instructor reviews held descriptions with their evidence and approves, edits, rejects or regenerates them. The learner plays the described lecture in standard or extended mode. Everything exports as WebVTT, described MP4s, audio clips, a transcript, a coverage report and a manifest.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5B6478"/></marker>
+    <style>
+      .t{font-family:Inter,'Segoe UI',Helvetica,Arial,sans-serif;fill:#181C26}
+      .h{font-size:17px;font-weight:600}
+      .s{font-size:13px;fill:#5B6478}
+      .n{font-size:13px;font-weight:700;fill:#fff}
+      .k{font-size:12px;font-weight:600;letter-spacing:.08em;fill:#5B6478}
+      .box{fill:#fff;stroke:#D5DAE3;stroke-width:1.5}
+      .acc{fill:#EEF2FF;stroke:#2F5BFF;stroke-width:1.5}
+      .ln{stroke:#5B6478;stroke-width:1.6;fill:none}
+    </style>
+  </defs>
+  <rect width="1200" height="420" fill="#FBFBFD"/>
+  <text x="40" y="52" class="t" style="font-size:26px;font-weight:700">Product workflow</text>
+  <text x="40" y="80" class="t s">From one upload to a lecture a blind or low-vision learner can follow, with a person in the loop where evidence is weak.</text>
+
+  <g>
+    <rect x="40" y="130" width="200" height="200" rx="14" class="box"/>
+    <circle cx="70" cy="160" r="14" fill="#2F5BFF"/><text x="70" y="165" text-anchor="middle" class="t n">1</text>
+    <text x="94" y="166" class="t h">Upload</text>
+    <text x="60" y="200" class="t s">Lecture video,</text>
+    <text x="60" y="218" class="t s">optional PDF / PPTX.</text>
+    <text x="60" y="236" class="t s">Type and length are</text>
+    <text x="60" y="254" class="t s">checked with ffprobe.</text>
+    <text x="60" y="306" class="t k">INSTRUCTOR</text>
+  </g>
+  <path d="M240 230H264" class="ln" marker-end="url(#a)"/>
+  <g>
+    <rect x="270" y="130" width="200" height="200" rx="14" class="box"/>
+    <circle cx="300" cy="160" r="14" fill="#2F5BFF"/><text x="300" y="165" text-anchor="middle" class="t n">2</text>
+    <text x="324" y="166" class="t h">Process</text>
+    <text x="290" y="200" class="t s">Live stage progress,</text>
+    <text x="290" y="218" class="t s">cancel and retry.</text>
+    <text x="290" y="236" class="t s">A 10-minute lecture</text>
+    <text x="290" y="254" class="t s">took 59 s (measured).</text>
+    <text x="290" y="306" class="t k">SEEHERE</text>
+  </g>
+  <path d="M470 230H494" class="ln" marker-end="url(#a)"/>
+  <g>
+    <rect x="500" y="130" width="200" height="200" rx="14" class="acc"/>
+    <circle cx="530" cy="160" r="14" fill="#2F5BFF"/><text x="530" y="165" text-anchor="middle" class="t n">3</text>
+    <text x="554" y="166" class="t h">Review</text>
+    <text x="520" y="200" class="t s">Held cues first, each</text>
+    <text x="520" y="218" class="t s">with keyframe, OCR,</text>
+    <text x="520" y="236" class="t s">slide and transcript.</text>
+    <text x="520" y="254" class="t s">Approve, edit, reject.</text>
+    <text x="520" y="306" class="t k">INSTRUCTOR</text>
+  </g>
+  <path d="M700 230H724" class="ln" marker-end="url(#a)"/>
+  <g>
+    <rect x="730" y="130" width="200" height="200" rx="14" class="box"/>
+    <circle cx="760" cy="160" r="14" fill="#2F5BFF"/><text x="760" y="165" text-anchor="middle" class="t n">4</text>
+    <text x="784" y="166" class="t h">Listen</text>
+    <text x="750" y="200" class="t s">Standard: lecture ducks</text>
+    <text x="750" y="218" class="t s">under each description.</text>
+    <text x="750" y="236" class="t s">Extended: the frame</text>
+    <text x="750" y="254" class="t s">holds while it plays.</text>
+    <text x="750" y="306" class="t k">LEARNER</text>
+  </g>
+  <path d="M930 230H954" class="ln" marker-end="url(#a)"/>
+  <g>
+    <rect x="960" y="130" width="200" height="200" rx="14" class="box"/>
+    <circle cx="990" cy="160" r="14" fill="#2F5BFF"/><text x="990" y="165" text-anchor="middle" class="t n">5</text>
+    <text x="1014" y="166" class="t h">Export</text>
+    <text x="980" y="200" class="t s">WebVTT, described and</text>
+    <text x="980" y="218" class="t s">extended MP4, WAVs,</text>
+    <text x="980" y="236" class="t s">transcript, coverage</text>
+    <text x="980" y="254" class="t s">report, manifest.</text>
+    <text x="980" y="306" class="t k">ANY LMS / PLAYER</text>
+  </g>
+  <path d="M600 330V372H370V336" class="ln" marker-end="url(#a)"/>
+  <text x="485" y="396" text-anchor="middle" class="t s">each review decision re-queues timing, voice and export</text>
+</svg>

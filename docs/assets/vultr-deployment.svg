@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" role="img" aria-labelledby="t d">
+  <title id="t">SeeHere on Vultr</title>
+  <desc id="d">One Vultr Cloud Compute instance running Ubuntu 24.04 with Docker Compose. A firewall allows ports 22, 80 and 443 only. Caddy terminates HTTPS with a Let's Encrypt certificate for an sslip.io name and routes to the web and API containers. A migrate container runs Alembic before the API and worker start. Postgres, media and Caddy certificates live on named volumes. The worker can call Gemini or Vultr Serverless Inference over HTTPS when enabled.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5B6478"/></marker>
+    <style>
+      .t{font-family:Inter,'Segoe UI',Helvetica,Arial,sans-serif;fill:#181C26}
+      .h{font-size:15px;font-weight:600}
+      .s{font-size:12.5px;fill:#5B6478}
+      .k{font-size:12px;font-weight:600;letter-spacing:.08em;fill:#5B6478}
+      .c{font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:11.5px;fill:#2F5BFF}
+      .box{fill:#fff;stroke:#D5DAE3;stroke-width:1.5}
+      .acc{fill:#EEF2FF;stroke:#2F5BFF;stroke-width:1.5}
+      .vol{fill:#F7F8FA;stroke:#B9C0CD;stroke-width:1.5}
+      .ext{fill:#F7F8FA;stroke:#B9C0CD;stroke-width:1.5;stroke-dasharray:6 4}
+      .ln{stroke:#5B6478;stroke-width:1.6;fill:none}
+      .dl{stroke:#5B6478;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+    </style>
+  </defs>
+  <rect width="1200" height="640" fill="#FBFBFD"/>
+  <text x="40" y="52" class="t" style="font-size:26px;font-weight:700">Deployment on Vultr</text>
+  <text x="40" y="80" class="t s" style="font-size:13px">One Cloud Compute instance, provisioned by cloud-init, updated with deploy.sh, reverted with rollback.sh.</text>
+
+  <rect x="40" y="260" width="150" height="90" rx="12" class="box"/>
+  <text x="115" y="294" text-anchor="middle" class="t h">Users</text>
+  <text x="115" y="314" text-anchor="middle" class="t s">https://&lt;ip&gt;.sslip.io</text>
+  <text x="115" y="332" text-anchor="middle" class="t s">browser, screen reader</text>
+
+  <rect x="230" y="112" width="760" height="500" rx="18" fill="none" stroke="#2F5BFF" stroke-width="1.5"/>
+  <text x="252" y="140" class="t k">VULTR CLOUD COMPUTE · UBUNTU 24.04 · 4 GB SWAP</text>
+  <rect x="230" y="200" width="22" height="210" rx="4" fill="#2F5BFF" opacity=".12"/>
+  <text x="241" y="306" text-anchor="middle" class="t k" transform="rotate(-90 241 306)">ufw 22 · 80 · 443</text>
+  <path d="M190 305H284" class="ln" marker-end="url(#a)"/>
+
+  <rect x="290" y="255" width="150" height="100" rx="12" class="acc"/>
+  <text x="365" y="285" text-anchor="middle" class="t h">caddy</text>
+  <text x="365" y="305" text-anchor="middle" class="t s">TLS, HSTS, HTTP/3</text>
+  <text x="365" y="323" text-anchor="middle" class="t s">520 MB body limit</text>
+  <text x="365" y="341" text-anchor="middle" class="t s">auto-renew certs</text>
+
+  <rect x="490" y="170" width="160" height="80" rx="12" class="box"/>
+  <text x="570" y="200" text-anchor="middle" class="t h">web</text>
+  <text x="570" y="220" text-anchor="middle" class="t s">Next.js standalone</text>
+  <text x="570" y="238" text-anchor="middle" class="c">:3000 /healthz</text>
+  <path d="M440 290C465 290 465 210 484 210" class="ln" marker-end="url(#a)"/>
+
+  <rect x="490" y="290" width="160" height="80" rx="12" class="box"/>
+  <text x="570" y="320" text-anchor="middle" class="t h">api</text>
+  <text x="570" y="340" text-anchor="middle" class="t s">FastAPI + uvicorn</text>
+  <text x="570" y="358" text-anchor="middle" class="c">:8000 /api/health</text>
+  <path d="M440 330H484" class="ln" marker-end="url(#a)"/>
+  <path d="M570 250V284" class="dl" marker-end="url(#a)"/>
+
+  <rect x="490" y="410" width="160" height="80" rx="12" class="acc"/>
+  <text x="570" y="440" text-anchor="middle" class="t h">worker</text>
+  <text x="570" y="460" text-anchor="middle" class="t s">ffmpeg, Whisper, OCR,</text>
+  <text x="570" y="478" text-anchor="middle" class="t s">CP-SAT, Piper</text>
+
+  <rect x="700" y="290" width="150" height="80" rx="12" class="box"/>
+  <text x="775" y="320" text-anchor="middle" class="t h">db</text>
+  <text x="775" y="340" text-anchor="middle" class="t s">Postgres 16</text>
+  <text x="775" y="358" text-anchor="middle" class="t s">data + job queue</text>
+  <path d="M650 330H694" class="ln" marker-end="url(#a)"/>
+  <path d="M650 450C680 450 680 350 694 350" class="ln" marker-end="url(#a)"/>
+
+  <rect x="700" y="170" width="150" height="80" rx="12" class="box"/>
+  <text x="775" y="200" text-anchor="middle" class="t h">migrate</text>
+  <text x="775" y="220" text-anchor="middle" class="t s">alembic upgrade head,</text>
+  <text x="775" y="238" text-anchor="middle" class="t s">then exits</text>
+  <path d="M775 250V284" class="ln" marker-end="url(#a)"/>
+
+  <!-- Volumes -->
+  <text x="290" y="540" class="t k">NAMED VOLUMES</text>
+  <rect x="290" y="552" width="120" height="40" rx="8" class="vol"/><text x="350" y="577" text-anchor="middle" class="c">pg</text>
+  <rect x="420" y="552" width="120" height="40" rx="8" class="vol"/><text x="480" y="577" text-anchor="middle" class="c">media</text>
+  <rect x="550" y="552" width="120" height="40" rx="8" class="vol"/><text x="610" y="577" text-anchor="middle" class="c">caddy_data</text>
+  <rect x="680" y="552" width="120" height="40" rx="8" class="vol"/><text x="740" y="577" text-anchor="middle" class="c">caddy_config</text>
+  <path d="M570 490V546" class="ln" marker-end="url(#a)"/>
+
+  <!-- Ops -->
+  <rect x="880" y="170" width="90" height="260" rx="12" class="box"/>
+  <text x="925" y="198" text-anchor="middle" class="t k">OPS</text>
+  <text x="925" y="230" text-anchor="middle" class="c">cloud-init</text>
+  <text x="925" y="262" text-anchor="middle" class="c">bootstrap</text>
+  <text x="925" y="294" text-anchor="middle" class="c">deploy</text>
+  <text x="925" y="326" text-anchor="middle" class="c">rollback</text>
+  <text x="925" y="358" text-anchor="middle" class="c">backup-db</text>
+  <text x="925" y="398" text-anchor="middle" class="t s">deploy/*.sh</text>
+
+  <!-- Hosted -->
+  <rect x="1020" y="380" width="150" height="120" rx="12" class="ext"/>
+  <text x="1095" y="410" text-anchor="middle" class="t h">Hosted models</text>
+  <text x="1095" y="432" text-anchor="middle" class="t s">Gemini vision</text>
+  <text x="1095" y="452" text-anchor="middle" class="t s">Vultr Serverless</text>
+  <text x="1095" y="470" text-anchor="middle" class="t s">Inference</text>
+  <text x="1095" y="488" text-anchor="middle" class="t s">(opt-in, metered)</text>
+  <path d="M650 470C820 520 960 470 1014 450" class="dl" marker-end="url(#a)"/>
+
+  <rect x="1020" y="170" width="150" height="110" rx="12" class="box"/>
+  <text x="1095" y="200" text-anchor="middle" class="t h">GitHub</text>
+  <text x="1095" y="222" text-anchor="middle" class="t s">public repo,</text>
+  <text x="1095" y="240" text-anchor="middle" class="t s">images built</text>
+  <text x="1095" y="258" text-anchor="middle" class="t s">on the server</text>
+  <path d="M1014 225H976" class="ln" marker-end="url(#a)"/>
+</svg>
