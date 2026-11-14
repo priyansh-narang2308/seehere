@@ -31,8 +31,8 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 09 | Scene and slide change detection | P0 | ✅ | Keyframes with timestamps; dedupe; precision checked on the demo clip |
 | 10 | OCR and text evidence | P0 | ✅ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |
 | 11 | Slide deck ingestion (PDF/PPTX) | P1 | ✅ | PDF via pypdf (PyMuPDF is AGPL); PPTX parsed in memory with zip-bomb/path/XML guards; slide↔keyframe alignment by text similarity |
-| 12 | Multimodal visual analysis | P0 | ⏳ | Vultr VLM adapter TESTED with JSON schema; invalid output rejected and retried once; units stored with region boxes |
-| 13 | Seen-versus-said analysis | P0 | ⏳ | Per-unit coverage score vs. transcript window; uncovered units prioritized; unit tests |
+| 12 | Multimodal visual analysis | P0 | 🟡 | Units with region boxes and per-appearance spans ✅ (OCR text blocks by default); Vultr VLM adapter with JSON-schema validation and one retry ✅ (mock-tested); **live TESTED status awaits owner approval to spend credit** |
+| 13 | Seen-versus-said analysis | P0 | ✅ | Per-unit coverage score vs. transcript window; uncovered units prioritized; unit tests |
 | 14 | Visual reference resolution | P0 | ⏳ | Deictic phrase detection; region linking with confidence; below threshold → NEEDS REVIEW; ambiguous case in demo clip flagged, not guessed |
 | 15 | Evidence ledger backend | P0 | ⏳ | Full lineage query for any cue; API `GET /api/cues/{id}/evidence` |
 | 16 | Description generation | P0 | ⏳ | S/M/L variants from unit fields; no values absent from evidence (checked by 17) |

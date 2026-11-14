@@ -15,6 +15,7 @@ Our own code is in `backend/src/seehere` and `web/src`. Everything below is a th
 | Pillow | frame thumbnails | MIT-CMU (HPND) |
 | pypdf | PDF slide text | BSD-3-Clause |
 | defusedxml | safe XML parsing (PPTX) | PSF-2.0 |
+| jsonschema | validating vision-model output | MIT |
 | Whisper `small.en` weights (Systran/faster-whisper-small.en) | STT model, downloaded on first use | MIT |
 | httpx | HTTP client | BSD-3-Clause |
 | pytest, ruff, mypy | dev tooling | MIT |

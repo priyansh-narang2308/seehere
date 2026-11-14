@@ -432,3 +432,43 @@
 - PDF text comes from the text layer; scanned PDFs have none, so their pages stay unmatched.
 - One deck per project.
 
+
+## Task 12: Visual analysis (2026-11-14) 🟡 (live vision test pending approval)
+
+### Implemented
+- **`providers/vision_vultr.py`**: Vultr chat completions with the frame as a data URL and a strict `json_schema` response format. Every reply is parsed and checked with jsonschema here; an invalid reply is retried **once** with the validation error fed back, a second one raises `VisionOutputInvalid`. Errors never contain the key. Capability: **DOCUMENTED** (ADR-006).
+- **`vision/schema.py`**: the unit contract (kind, label, details, visible text, box in 0–1) and the prompt ("only what is visible, no outside knowledge").
+- **Job `visual.analyze`** (queued by OCR): units per keyframe into `visual_unit`.
+  - Default: **OCR lines grouped into text blocks** (a line joins the block above when the gap ≤ its height), box = union.
+  - `VISION_PROVIDER=vultr` + key: the model's units replace a frame's blocks; if it fails validation twice, the frame keeps its OCR blocks. **Off by default** because each call costs credit.
+  - **One unit per appearance**: a revisited slide gets its own span, from each frame's `scene_index` runs.
+- **`GET /api/projects/{id}/visuals`**: units ranked by priority.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_vision.py` (13 + 1 opt-in live) | Request shape (auth, strict schema, data URL); invalid → one retry with the reason; invalid twice rejected (bad JSON, out-of-range box, extra field); no key in errors; grouping; clipping; revisit spans. Job on a rendered lecture: 3 spans (0–5, 5–9, 9–12 s) with the right labels and boxes; mocked model units replace OCR and an invalid-twice frame keeps OCR |
+
+### Known limitations
+- **The Vultr vision model has not been called live.** Until the owner approves `SEEHERE_LIVE_VULTR_VISION=1`, charts and diagrams without text are not detected; units are text blocks.
+- OCR blocks are always `text_block`; no table or chart structure.
+
+## Task 13: Seen versus said (2026-11-14) ✅
+
+### Implemented
+- **Job `coverage.score`**, queued by both visual analysis and speech-to-text (whichever finishes last scores; without both it finishes without scores).
+- **Coverage** = share of a unit's distinctive words (3+ letters, stop words dropped, plurals folded) and numbers spoken from 5 s before it appears to 5 s after it leaves. **Numbers count double** and match by value within the shown rounding (`same_number`), as digits or words ("twelve point five" = 12.5%, "three point two million" = $3.2M), after OCR digit repair.
+- Numbers that Whisper splits across words ("12", ".5%") are rejoined; found in the live run.
+- **Priority** = (1 − coverage) × kind weight (chart/table 1.0 … text 0.6). Said and unsaid items are stored per unit.
+- **Web:** "Seen versus said" list, most-needed first, with "% said aloud" and what was not said; stages 07–08 marked built (07 states the vision model is not live-tested).
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_coverage.py` (9) | Spoken numbers (digits, words, scale words); split numbers; full / partial / none; rounding and OCR misreads; kind ranking; job end to end: waits without transcript, then scores each appearance against its own window; API ranking and 404 |
+| Backend / Web | **223 passed, 2 skipped** (both opt-in live Vultr) / **112 passed**; `make check` and `next build` pass |
+| Live | Real TTS lecture ("revenue rose twelve point five percent"): "Revenue rose 12.5% to $3.2M" 67% said, only **$3.2M** unsaid; margin line and slide 2 at 0%, ranked first |
+
+### Known limitations
+- Word overlap, not meaning: a paraphrase ("sales went up") is not counted as said.
+- A coverage job already running when new input lands is not restarted (same as the deck stage).

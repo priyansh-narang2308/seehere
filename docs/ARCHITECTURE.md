@@ -120,10 +120,15 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 ## On-screen text (Task 10)
 - Job `ocr.extract` after `scenes.detect`, on keyframes only. Tesseract TSV is grouped into lines → `ocr_region` (text as read, confidence 0–1, box as fractions of the frame). Served by `GET /api/projects/{id}/ocr`.
 - `seehere.text.numbers` normalizes numbers from OCR and speech for later comparison; stored evidence is never rewritten.
-- Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract`).
+- Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract` → `visual.analyze`) → `coverage.score` (queued by both branches).
 
 ## Slide decks (Task 11)
 - `POST/GET /api/projects/{id}/deck`. Job `deck.ingest` reads pages (pypdf, or in-memory PPTX with zip-bomb, path and XML guards) into `slide` rows, aligned to keyframes by text similarity with OCR. OCR re-queues it.
+
+
+## Visual units and seen versus said (Tasks 12-13)
+- `visual.analyze`: per keyframe, OCR text blocks (default) or schema-validated Vultr vision units (`VISION_PROVIDER=vultr`, DOCUMENTED, off by default). One `visual_unit` per unit per appearance of the scene.
+- `coverage.score`: compares each unit's words and numbers with transcript words in [start − 5 s, end + 5 s]; stores `coverage_score`, `priority`, said/unsaid. Served ranked by `GET /api/projects/{id}/visuals`.
 
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.
