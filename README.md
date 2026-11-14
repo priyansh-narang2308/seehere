@@ -20,11 +20,20 @@
 
 **HackGlobal 2026 · Track 02: Multimodal & Accessibility**
 
-**[▶ Live demo](https://65-20-87-43.sslip.io)** · [How it works](#9-multimodal-pipeline) · [Evidence ledger](#10-the-visual-evidence-ledger) · [Run it locally](#14-local-installation) · [Measured results](#19-benchmarks-and-measured-results)
+**[▶ Live demo](https://65-20-87-43.sslip.io)** · **[📊 Live status](https://65-20-87-43.sslip.io/status)** · [How it works](#9-multimodal-pipeline) · [Evidence ledger](#10-the-visual-evidence-ledger) · [Run it locally](#14-local-installation) · [Measured results](#19-benchmarks-and-measured-results)
 
 </div>
 
 ---
+
+> **For judges: try it live**
+>
+> | Link | What you will see |
+> |---|---|
+> | [Live app](https://65-20-87-43.sslip.io) | Upload a lecture (or open the demo project) and watch the 14-stage pipeline run |
+> | [Demo lecture results](https://65-20-87-43.sslip.io/projects/bfaa58c7-1351-4483-bdfa-845e23ee6a98/results) | The described video, transcript, evidence ledger and the 9 export files |
+> | [Live status](https://65-20-87-43.sslip.io/status) | Real-time health of the API, database and media tools, measured stage timings, and every Vultr Serverless Inference call with tokens and latency |
+> | [`/api/metrics`](https://65-20-87-43.sslip.io/api/metrics) · [`/api/health`](https://65-20-87-43.sslip.io/api/health) | The same numbers as raw JSON |
 
 ## 1. Overview
 
@@ -297,7 +306,7 @@ Both vision models gave the same verdicts on the demo lecture. With Vultr, 14 vi
 
 ## 20. Deployment and public demo
 
-**Live demo:** https://65-20-87-43.sslip.io (Vultr Cloud Compute, Mumbai, 4 vCPU / 8 GB, HTTPS via Caddy + Let's Encrypt).
+**Live demo:** https://65-20-87-43.sslip.io · **Live status:** https://65-20-87-43.sslip.io/status (Vultr Cloud Compute, Mumbai, 4 vCPU / 8 GB, HTTPS via Caddy + Let's Encrypt).
 
 Observed on the live server (2026-11-14): the demo lecture went from upload to ready in 50 s, with 6 Vultr Serverless Inference vision calls (0 failed), 11 descriptions (1 held for review) and all 9 exports built. `/api/health` reports every component ok. Uploaded media is deleted after 24 hours.
 
