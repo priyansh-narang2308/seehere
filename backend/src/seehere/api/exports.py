@@ -94,9 +94,7 @@ def download_export(
     if not path.is_file():
         raise APIError(404, "not_found", "The export file is no longer stored.")
     # HTML is always downloaded, never rendered in our origin.
-    disposition = (
-        "inline" if inline and MEDIA_TYPES[art.kind] != "text/html" else "attachment"
-    )
+    disposition = "inline" if inline and MEDIA_TYPES[art.kind] != "text/html" else "attachment"
     return FileResponse(
         path,
         media_type=MEDIA_TYPES[art.kind],

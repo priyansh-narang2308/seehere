@@ -52,7 +52,10 @@ No new dependencies. The job queue uses Postgres and SQLAlchemy; media preparati
 OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (`piper-tts`, GPL-3.0 since 1.3; installed as a separate tool with `uv tool install` and run as its own process, never imported or bundled in SeeHere's package) · default voice `en_US-ljspeech-medium`, trained on LJ Speech (public domain).
 
 ## Baseline (not part of our product)
-microsoft/ai-audio-descriptions (MIT) is run unmodified as a comparison baseline in Task 29, with attribution. Its code is not copied into SeeHere.
+microsoft/ai-audio-descriptions (MIT, Copyright (c) 2024 Microsoft; licence checked 2026-11-14) is the comparison baseline (Task 29), pinned at commit `be76687c6cc4ee9667328bcc380d76c1bb95ab94`. `bench/microsoft/run.sh` clones it into `var/baselines/` (git-ignored) with its own virtual environment and runs its GenerateAD CLI unmodified; its code is never copied into SeeHere. Attribution and the full licence: `bench/microsoft/NOTICE.md`. It needs a chargeable Azure Foundry resource (Speech + GPT), which has not been provisioned, so it is currently UNAVAILABLE and reports no numbers.
+
+## Tasks 26–30
+No new packages. The report and benchmark use the standard library, SQLAlchemy and the existing number parser. One migration adds the `report_html` and `report_json` export kinds.
 
 ## Hosted models (Vultr Serverless Inference, used via API)
 Model licences are per the Vultr catalog and model cards. `auk` is "evaluation only", so we avoid it.

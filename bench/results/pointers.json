@@ -1,7 +1,7 @@
 {
   "item": "pointers",
   "source_sha256": "30d4c5c4a20c9f4e07df691d33227768a32447c61583fadc73909a62728f7ae2",
-  "generated_at": "2026-11-14T09:37:18+00:00",
+  "generated_at": "2026-11-14T09:38:21+00:00",
   "systems": [
     {
       "system": "microsoft-ai-audio-descriptions",
@@ -167,8 +167,8 @@
     },
     {
       "system": "seehere-reviewed",
-      "evidence": "SIMULATED",
-      "note": "no description was held for review, so an approving reviewer changes nothing",
+      "evidence": "OBSERVED",
+      "note": "1 instructor decisions recorded; selected cp_sat schedule",
       "metrics": {
         "descriptions": 1,
         "described_s": 3.831,

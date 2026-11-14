@@ -630,3 +630,40 @@
 - The extended MP4 is re-encoded (libx264). It is fast for short lectures but slower for long ones.
 - The player's extended mode pauses the original video live. The rendered extended MP4 is the file to publish.
 - Not a WCAG conformance claim: the player was checked with axe and keyboard semantics, not with real screen-reader user testing.
+
+## Tasks 26–30: Review, evidence ledger UI, coverage report, Microsoft baseline, benchmark (2026-11-14) ✅ / ✅ / ✅ / ✅ / 🟡
+
+### Implemented
+- **Task 26, instructor review:** `POST /api/cues/{id}/review` (approve, reject, edit, regenerate; app header required). Edits are re-verified and approved; regenerations are rebuilt from the visual unit and re-verified. Every action is a `review_decision` and re-queues schedule → synthesis → timing → export. Decisions carry over when descriptions are regenerated. Web: review buttons on each description, an edit form (500 characters), "held until approved" and "not voiced" states, live status message, review history.
+- **Task 27, evidence ledger UI:** the keyframe with the unit's region (solid) and each OCR line box (dashed), OCR text and confidence, full deck-page text, speech spans, lines on screen but never said aloud, every check with its resulting state, and the review history.
+- **Task 28, coverage and verification report:** one outcome per visual (described, extended only, said aloud, repeat, skipped with the scheduler's reason, held for review, rejected, not scheduled); uncovered count; counts by verification state, check result and review status; timing results. `GET /api/projects/{id}/report`, exported as `report.html` and `report.json` (migration adds the two export kinds), shown on the Results page.
+- **Task 29, Microsoft baseline:** `microsoft/ai-audio-descriptions` is MIT (checked), pinned at `be76687c6cc4ee9667328bcc380d76c1bb95ab94`. `bench/microsoft/run.sh` checks the Azure configuration first (no download and no Azure call without it), clones the pinned commit, verifies it, installs into its own venv and runs GenerateAD. Attribution and licence: `bench/microsoft/NOTICE.md`. **Status: UNAVAILABLE.** It needs a chargeable Azure Foundry resource that was not provisioned.
+- **Task 30, benchmark:** annotation format `seehere-bench/1`, `python -m seehere.bench` runner, metrics (visual and fact recall, seconds over speech, pause time, unsupported numbers). Every row is labelled OBSERVED, SIMULATED or UNAVAILABLE. "Reviewed" is OBSERVED when decisions exist, otherwise SIMULATED by re-planning in a rolled-back transaction. One annotated item (`bench/annotations/pointers.json`) and its results (`bench/results/pointers.md`). 🟡 because the Microsoft comparison has no observed numbers.
+
+### Results (pointers demo, 15 s synthetic, developer-annotated)
+| System | Evidence | Visual recall | Fact recall | Over speech |
+|---|---|---|---|---|
+| Microsoft GenerateAD | UNAVAILABLE | – | – | – |
+| Greedy | OBSERVED | 20% | 14% | 0.00 s |
+| CP-SAT | OBSERVED | 20% | 29% | 0.00 s |
+| Extended | OBSERVED | 20% | 29% | 0.00 s |
+| Reviewed (1 approval) | OBSERVED | 20% | 29% | 0.00 s |
+
+Both solvers voice one description because the first slide has no pause long enough and the 8% pause budget (1.2 s) is too small. CP-SAT chose the pointed-at "Hire 3 engineers by March" line; greedy chose the "Next steps" title. One short item is a smoke test, not evidence of general quality.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_report.py` | Every outcome and its reason; uncovered count; state/review/check counts; HTML escaping; not-scheduled case |
+| `test_bench.py` | Committed annotation valid; bad annotations refused; fact matching; metrics (recall, overlap, pauses, invented numbers); WebVTT import; UNAVAILABLE rows report no numbers |
+| `test_descriptions.py` end to end | 9 exports incl. reports; report consistent with the final schedule; benchmark labels; simulated review leaves the stored runs unchanged |
+| `test_export.py` | Every export kind has a file name and media type |
+| Web | Review flow (approve with app header, edit, API error), evidence boxes and check states, report section; axe clean |
+| Backend / Web | **613 passed, 3 skipped** / **126 passed**; `make check` and `next build` pass |
+| Live (pointers demo) | Approved a cue in the browser → schedule, synthesis, timing and export re-ran (all succeeded) → 9 files; Results page shows the report (5 visuals, 1 described, 4 skipped with pause-budget reasons) |
+
+### Known limitations
+- The Microsoft baseline has not been run (no Azure resource); no Microsoft numbers exist.
+- The benchmark has one synthetic, developer-annotated item.
+- "Unsupported numbers" is a proxy for invented values, not a hallucination measure; verification is evidence matching, not complete fact-checking.
+- Vultr TTS and vision remain DOCUMENTED: the `VULTR_INFERENCE_API_KEY` in `.env` is empty, so the opt-in live tests cannot run.

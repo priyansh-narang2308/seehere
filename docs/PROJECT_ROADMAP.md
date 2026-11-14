@@ -45,11 +45,11 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 23 | Post-synthesis timing validation | P0 | ✅ | Measured durations; re-solve ≤3 rounds; invalid cues rejected and logged |
 | 24 | Export and media composition | P0 | ✅ | WebVTT, cue audio, standard MP4 (ducked), extended MP4, accessible transcript, manifest, zip |
 | 25 | Accessible video player | P0 | ✅ | Plays AD audio at cue times (Web Audio/HTMLAudio sync), toggles, synced transcript, keyboard + screen reader; no duplicate descriptions |
-| 26 | Instructor edit/approve workflow | P1 | ⏳ | Edit, approve, reject, regenerate; edits re-verified + re-scheduled |
-| 27 | Evidence ledger UI | P0 | ⏳ | Frame with region overlay, OCR, slide text, transcript span, verification state per cue |
-| 28 | Uncovered-content and verification report | P1 | ⏳ | Described / skipped / uncovered / review / corroborated / uncertain / timing results |
-| 29 | Microsoft baseline integration | P1 | ⏳ | microsoft/ai-audio-descriptions licence checked, commit pinned, reproducible run script, attribution |
-| 30 | Benchmark and evaluation | P1 | ⏳ | Annotation format; runner; metrics for MS / greedy / CP-SAT / reviewed; results labelled OBSERVED/SIMULATED |
+| 26 | Instructor edit/approve workflow | P1 | ✅ | Edit, approve, reject, regenerate; edits re-verified + re-scheduled |
+| 27 | Evidence ledger UI | P0 | ✅ | Frame with region overlay, OCR, slide text, transcript span, verification state per cue |
+| 28 | Uncovered-content and verification report | P1 | ✅ | Described / skipped / uncovered / review / corroborated / uncertain / timing results |
+| 29 | Microsoft baseline integration | P1 | ✅ | microsoft/ai-audio-descriptions licence checked, commit pinned, reproducible run script, attribution |
+| 30 | Benchmark and evaluation | P1 | 🟡 | Annotation format; runner; metrics for MS / greedy / CP-SAT / reviewed; results labelled OBSERVED/SIMULATED |
 | 31 | End-to-end and failure testing | P0 | ⏳ | Full flow + invalid/malformed/provider-failure/interrupted-job cases |
 | 32 | Security, privacy and a11y audit | P1 | ⏳ | Endpoint review, rate limits, retention job, axe + manual SR pass, fixes |
 | 33 | Performance, monitoring, cost | P2 | ⏳ | Measured stage timings, resource use, API spend; limits re-tuned |

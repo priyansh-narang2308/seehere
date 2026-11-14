@@ -102,8 +102,8 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "review",
     name: "Instructor review",
-    summary: "An instructor approves, edits or rejects every description before anything is published.",
-    status: "not_built",
+    summary: "An instructor approves, edits, rejects or regenerates each description; ones that need review are not voiced until approved.",
+    status: "built",
   },
   {
     id: "export",

@@ -62,7 +62,7 @@ describe("honesty of in-progress pages", () => {
     render(<MethodologyPage />);
     const built = pipelineStages.filter((s) => s.status === "built").length;
     expect(screen.getByText(new RegExp(`${built} of ${pipelineStages.length} stages are built`))).toBeInTheDocument();
-    expect(screen.getAllByText("Not built yet")).toHaveLength(pipelineStages.length - built);
+    expect(screen.queryAllByText("Not built yet")).toHaveLength(pipelineStages.length - built);
   });
 
   it("never claims WCAG certification", () => {

@@ -1,6 +1,6 @@
 # Benchmark: pointers
 
-Generated 2026-11-14T09:37:18+00:00 by `python -m seehere.bench`. Evidence labels: OBSERVED = the system ran on this item; SIMULATED = computed under the stated assumption; UNAVAILABLE = not run (no numbers reported).
+Generated 2026-11-14T09:38:21+00:00 by `python -m seehere.bench`. Evidence labels: OBSERVED = the system ran on this item; SIMULATED = computed under the stated assumption; UNAVAILABLE = not run (no numbers reported).
 
 | System | Evidence | Descriptions | Visual recall | Fact recall | Over speech (s) | Paused (s) | Unsupported numbers | Note |
 |---|---|---|---|---|---|---|---|---|
@@ -8,6 +8,6 @@ Generated 2026-11-14T09:37:18+00:00 by `python -m seehere.bench`. Evidence label
 | seehere-greedy | OBSERVED | 1 | 20% | 14% | 0.00 | 0.00 | none | stored greedy schedule |
 | seehere-cp-sat | OBSERVED | 1 | 20% | 29% | 0.00 | 0.00 | none | status optimal |
 | seehere-extended | OBSERVED | 1 | 20% | 29% | 0.00 | 0.00 | none | built on cp_sat |
-| seehere-reviewed | SIMULATED | 1 | 20% | 29% | 0.00 | 0.00 | none | no description was held for review, so an approving reviewer changes nothing |
+| seehere-reviewed | OBSERVED | 1 | 20% | 29% | 0.00 | 0.00 | none | 1 instructor decisions recorded; selected cp_sat schedule |
 
 Metric definitions: see `bench/README.md`. Unsupported numbers are a proxy for invented values, not a complete hallucination measure. One short synthetic item is a smoke test, not evidence of general quality.
