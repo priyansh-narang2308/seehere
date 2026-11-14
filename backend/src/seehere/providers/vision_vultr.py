@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import time
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from pydantic import SecretStr
 
+from seehere.core.usage import record_call
 from seehere.providers.base import Capability, ProviderInfo, VerificationState
 from seehere.providers.errors import ProviderError
 
@@ -95,6 +97,7 @@ class VultrVisionAnalyzer:
                 "json_schema": {"name": "visual_units", "schema": schema, "strict": True},
             },
         }
+        started = time.monotonic()
         try:
             r = client.post(
                 f"{self.base_url}/chat/completions",
@@ -102,13 +105,25 @@ class VultrVisionAnalyzer:
                 json=body,
             )
         except httpx.HTTPError as exc:
+            record_call("vision", None, started)
             raise VisionError(f"request failed: {type(exc).__name__}") from None
         if r.status_code != 200:
+            record_call("vision", r.status_code, started)
             raise VisionError(f"Vultr returned HTTP {r.status_code}", status=r.status_code)
         try:
-            return str(r.json()["choices"][0]["message"]["content"])
+            reply = r.json()
+            content = str(reply["choices"][0]["message"]["content"])
         except (ValueError, KeyError, IndexError, TypeError):
+            record_call("vision", r.status_code, started)
             raise VisionError("unexpected response format") from None
+        usage = reply.get("usage") if isinstance(reply, dict) else None
+        tokens = {
+            k: float(usage[k])
+            for k in ("prompt_tokens", "completion_tokens")
+            if isinstance(usage, dict) and isinstance(usage.get(k), int | float)
+        }
+        record_call("vision", r.status_code, started, tokens)
+        return content
 
     def analyze(self, image_path: Path, prompt: str, json_schema: dict[str, Any]) -> dict[str, Any]:
         messages: list[dict[str, Any]] = [

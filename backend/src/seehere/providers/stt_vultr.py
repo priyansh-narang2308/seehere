@@ -12,11 +12,15 @@ a live test confirms it. The pipeline does not call this adapter.
 
 from __future__ import annotations
 
+import contextlib
+import time
+import wave
 from pathlib import Path
 
 import httpx
 from pydantic import SecretStr
 
+from seehere.core.usage import record_call
 from seehere.providers.base import (
     Capability,
     ProgressCallback,
@@ -25,6 +29,7 @@ from seehere.providers.base import (
     VerificationState,
 )
 from seehere.providers.errors import ProviderError
+from seehere.providers.tts_piper import wav_duration_ms
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # documented request limit
 
@@ -70,6 +75,10 @@ class VultrWhisperSTT:
             raise VultrSTTError(
                 f"audio is {size} bytes; the documented limit is 25 MB", retryable=False
             )
+        units = {"audio_bytes": float(size)}
+        # Not WAV: the byte count alone records the request size.
+        with contextlib.suppress(OSError, EOFError, ValueError, wave.Error):
+            units["audio_s"] = wav_duration_ms(audio_path) / 1000
         data = {"model": self.model, "response_format": "json"}
         if language:
             data["language"] = language
@@ -77,6 +86,7 @@ class VultrWhisperSTT:
             audio_path.open("rb") as f,
             httpx.Client(timeout=self.timeout_s, transport=self._transport) as client,
         ):
+            started = time.monotonic()
             try:
                 r = client.post(
                     f"{self.base_url}/audio/transcriptions",
@@ -85,7 +95,9 @@ class VultrWhisperSTT:
                     files={"file": (audio_path.name, f, "audio/wav")},
                 )
             except httpx.HTTPError as exc:
+                record_call("stt", None, started, units)
                 raise VultrSTTError(f"request failed: {type(exc).__name__}") from None
+        record_call("stt", r.status_code, started, units)
         if r.status_code != 200:
             raise VultrSTTError(f"Vultr returned HTTP {r.status_code}", status=r.status_code)
         try:

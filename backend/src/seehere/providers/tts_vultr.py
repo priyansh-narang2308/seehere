@@ -9,12 +9,14 @@ duration can be measured from the file.
 from __future__ import annotations
 
 import io
+import time
 import wave
 from pathlib import Path
 
 import httpx
 from pydantic import SecretStr
 
+from seehere.core.usage import record_call
 from seehere.providers.base import Capability, ProviderInfo, SynthesizedAudio, VerificationState
 from seehere.providers.errors import ProviderError
 from seehere.providers.tts_piper import wav_duration_ms
@@ -58,6 +60,7 @@ class VultrTTS:
             "voice": voice or self.voice,
             "response_format": "wav",
         }
+        started = time.monotonic()
         with httpx.Client(timeout=self.timeout_s, transport=self._transport) as client:
             try:
                 r = client.post(
@@ -66,7 +69,9 @@ class VultrTTS:
                     json=body,
                 )
             except httpx.HTTPError as e:
+                record_call("tts", None, started, {"input_chars": len(text)})
                 raise VultrTTSError(f"request failed: {type(e).__name__}") from None
+        record_call("tts", r.status_code, started, {"input_chars": len(text)})
         if r.status_code != 200:
             raise VultrTTSError(f"HTTP {r.status_code} from text-to-speech", status=r.status_code)
         try:
