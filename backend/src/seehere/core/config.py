@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     vultr_vision_timeout_s: float = 90.0
     # Speech this many seconds before/after a unit is on screen counts as describing it.
     coverage_window_pad_s: float = 5.0
+    # A spoken pointer is linked to a visual only at or above this confidence (Task 14).
+    reference_link_threshold: float = 0.5
 
     @property
     def max_deck_bytes(self) -> int:
