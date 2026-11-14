@@ -40,6 +40,7 @@ const media: PreparedMedia = {
       { id: "f7", t_s: 7 },
     ],
   },
+  scenes: null,
 };
 
 const transcript: Transcript = {
@@ -196,5 +197,19 @@ describe("JobPanel", () => {
     stubApi([[job({ kind: "speech.transcribe", label: "Speech-to-text", status: "running", stage: "transcribe", progress: 0.5, attempts: 1 })]]);
     render(<JobPanel projectId={PROJECT} />);
     expect(await screen.findByText("Recognizing speech")).toBeInTheDocument();
+  });
+
+  it("shows keyframes once scene detection is done", async () => {
+    const withScenes: PreparedMedia = {
+      ...media,
+      scenes: { keyframes: [{ id: "k0", t_s: 0, scene_index: 0 }, { id: "k6", t_s: 6, scene_index: 1 }], revisits: 1 },
+    };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW })]], (url) =>
+      url.endsWith("/media") ? withScenes : undefined,
+    );
+    render(<JobPanel projectId={PROJECT} />);
+    expect(await screen.findByText(/found where the picture changes, plus 1 return to an earlier slide\./)).toBeInTheDocument();
+    const images = within(screen.getByRole("list", { name: "Keyframes" })).getAllByRole("img");
+    expect(images.map((i) => i.getAttribute("alt"))).toEqual(["Keyframe at 0:00", "Keyframe at 0:06"]);
   });
 });

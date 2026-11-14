@@ -34,8 +34,8 @@ export const pipelineStages: readonly PipelineStage[] = [
   {
     id: "scenes",
     name: "Scene and slide changes",
-    summary: "Keyframes are taken where the picture changes, such as a new slide.",
-    status: "not_built",
+    summary: "Keyframes are taken where the picture changes, such as a new slide. A slide shown again is recognized, not counted twice.",
+    status: "built",
   },
   {
     id: "ocr",

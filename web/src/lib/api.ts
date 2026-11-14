@@ -65,6 +65,8 @@ export type PreparedMedia = {
     last_s: number | null;
     preview: { id: string; t_s: number }[];
   };
+  /** First appearance of each distinct picture; null until scene detection has run. */
+  scenes: { keyframes: { id: string; t_s: number; scene_index: number }[]; revisits: number } | null;
 };
 
 export type TranscriptWord = { text: string; start_s: number; end_s: number; confidence: number | null };

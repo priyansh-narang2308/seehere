@@ -40,6 +40,7 @@ const STAGES: Record<string, string> = {
   save: "Saving results",
   model: "Loading the speech model",
   transcribe: "Recognizing speech",
+  compare: "Comparing frames",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -73,7 +74,9 @@ export function JobPanel({ projectId }: { projectId: string }) {
         setList(next);
         setError(null);
         const prepared = next.jobs.find((j) => j.kind === "media.prepare" && j.status === "succeeded");
-        const key = prepared ? `${prepared.id}:${prepared.finished_at}` : null;
+        // Scene detection adds keyframes to the same media summary, so reload when it finishes too.
+        const scenes = next.jobs.find((j) => j.kind === "scenes.detect");
+        const key = prepared ? `${prepared.id}:${prepared.finished_at}:${scenes?.finished_at ?? ""}` : null;
         if (key && mediaLoadedFor.current !== key) {
           mediaLoadedFor.current = key;
           getJson<PreparedMedia>(`/api/projects/${projectId}/media`, { signal: controller.signal })
@@ -248,6 +251,8 @@ function JobRow({
 function PreparedOutputs({ media }: { media: PreparedMedia }) {
   const { audio, frames } = media;
   const every = frames.fps ? (frames.fps === 1 ? "one per second" : `${frames.fps} per second`) : null;
+  // Once scenes are known, show the keyframes (one per distinct picture) instead of an even spread.
+  const shown = media.scenes ? media.scenes.keyframes : frames.preview;
   return (
     <div className="space-y-4 border-t border-border px-5 py-4">
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
@@ -275,16 +280,27 @@ function PreparedOutputs({ media }: { media: PreparedMedia }) {
           </dd>
         </div>
       </dl>
-      {frames.preview.length > 0 && (
-        <ul aria-label="Frame preview" className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {frames.preview.map((f) => (
+      {media.scenes && (
+        <p className="text-sm text-ink-2">
+          <span className="font-medium text-ink">
+            {media.scenes.keyframes.length} {media.scenes.keyframes.length === 1 ? "scene" : "scenes"}
+          </span>{" "}
+          found where the picture changes
+          {media.scenes.revisits > 0 &&
+            `, plus ${media.scenes.revisits} ${media.scenes.revisits === 1 ? "return" : "returns"} to an earlier slide`}
+          .
+        </p>
+      )}
+      {shown.length > 0 && (
+        <ul aria-label={media.scenes ? "Keyframes" : "Frame preview"} className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {shown.map((f) => (
             <li key={f.id}>
               <figure>
                 {/* Served by the API from private storage; next/image optimization is not used. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={frameImageUrl(f.id)}
-                  alt={`Video frame at ${formatDuration(f.t_s)}`}
+                  alt={`${media.scenes ? "Keyframe" : "Video frame"} at ${formatDuration(f.t_s)}`}
                   loading="lazy"
                   className="aspect-video w-full rounded-sm border border-border bg-sunken object-cover"
                 />
@@ -295,7 +311,7 @@ function PreparedOutputs({ media }: { media: PreparedMedia }) {
         </ul>
       )}
       <p className="text-xs text-muted">
-        These are the inputs for visual analysis, which is not built yet.
+        These are the inputs for on-screen text and visual analysis, which are not built yet.
       </p>
     </div>
   );
