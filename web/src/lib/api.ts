@@ -380,6 +380,7 @@ export function uploadLecture(
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/api/projects`);
     xhr.setRequestHeader("Content-Type", input.file.type || "application/octet-stream");
+    xhr.setRequestHeader("X-SeeHere-Request", "1");
     xhr.setRequestHeader("X-SeeHere-Title", encodeURIComponent(input.title));
     xhr.setRequestHeader("X-SeeHere-Filename", encodeURIComponent(input.file.name));
     xhr.setRequestHeader("X-SeeHere-Rights-Confirmed", input.rightsConfirmed ? "true" : "false");

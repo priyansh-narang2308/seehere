@@ -123,6 +123,7 @@ describe("uploadLecture", () => {
     expect(xhr.body).toBe(file);
     expect(xhr.headers).toMatchObject({
       "Content-Type": "video/mp4",
+      "X-SeeHere-Request": "1",
       "X-SeeHere-Title": "Graphs%20%26%20charts",
       "X-SeeHere-Filename": encodeURIComponent("Lecture 7 – Graphs.mp4"),
       "X-SeeHere-Rights-Confirmed": "true",
