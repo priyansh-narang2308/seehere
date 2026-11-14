@@ -212,4 +212,27 @@ describe("JobPanel", () => {
     const images = within(screen.getByRole("list", { name: "Keyframes" })).getAllByRole("img");
     expect(images.map((i) => i.getAttribute("alt"))).toEqual(["Keyframe at 0:00", "Keyframe at 0:06"]);
   });
+
+  it("shows on-screen text by keyframe and marks low-confidence lines", async () => {
+    const read = job({ id: "job-4", kind: "ocr.extract", label: "On-screen text", status: "succeeded", progress: 1, finished_at: NOW });
+    const box = { x: 0.06, y: 0.08, w: 0.5, h: 0.1 };
+    stubApi([[job({ status: "succeeded", progress: 1, finished_at: NOW }), read]], (url) =>
+      url.endsWith("/ocr")
+        ? {
+            available: true,
+            keyframes: [
+              { frame_id: "k0", t_s: 0, regions: [{ text: "Quarterly Revenue", confidence: 0.95, ...box }, { text: "Rev 12.5%", confidence: 0.41, ...box }] },
+              { frame_id: "k6", t_s: 6, regions: [] },
+            ],
+          }
+        : undefined,
+    );
+    const { container } = render(<JobPanel projectId={PROJECT} />);
+    expect(await screen.findByText(/Read by OCR from 1 of 2 keyframes/)).toBeInTheDocument();
+    const list = within(screen.getByRole("list", { name: "Text by keyframe" }));
+    expect(list.getByText("Quarterly Revenue")).toBeInTheDocument();
+    expect(list.getByText("Rev 12.5%")).toHaveTextContent("Rev 12.5%(low confidence)");
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
 });

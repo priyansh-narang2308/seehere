@@ -17,8 +17,10 @@ import {
   type JobList,
   type JobStatus,
   type PreparedMedia,
+  type OcrResult,
   type Transcript,
 } from "@/lib/api";
+import { OcrView } from "./ocr-view";
 import { TranscriptView } from "./transcript-view";
 
 const POLL_MS = 1000;
@@ -41,6 +43,7 @@ const STAGES: Record<string, string> = {
   model: "Loading the speech model",
   transcribe: "Recognizing speech",
   compare: "Comparing frames",
+  read: "Reading on-screen text",
 };
 
 const isActive = (j: Job) => j.status === "queued" || j.status === "running";
@@ -52,6 +55,8 @@ export function JobPanel({ projectId }: { projectId: string }) {
   const [media, setMedia] = useState<PreparedMedia | null>(null);
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const transcriptLoadedFor = useRef<string | null>(null);
+  const [ocr, setOcr] = useState<OcrResult | null>(null);
+  const ocrLoadedFor = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -98,6 +103,18 @@ export function JobPanel({ projectId }: { projectId: string }) {
         if (!speech) {
           transcriptLoadedFor.current = null;
           setTranscript(null);
+        }
+        const read = next.jobs.find((j) => j.kind === "ocr.extract" && j.status === "succeeded");
+        const readKey = read ? `${read.id}:${read.finished_at}` : null;
+        if (readKey && ocrLoadedFor.current !== readKey) {
+          ocrLoadedFor.current = readKey;
+          getJson<OcrResult>(`/api/projects/${projectId}/ocr`, { signal: controller.signal })
+            .then((o) => setOcr(o.available ? o : null))
+            .catch(() => {});
+        }
+        if (!read) {
+          ocrLoadedFor.current = null;
+          setOcr(null);
         }
         const active = next.jobs.some(isActive);
         if (active) timer = setTimeout(refresh, POLL_MS);
@@ -165,6 +182,7 @@ export function JobPanel({ projectId }: { projectId: string }) {
         </ul>
       )}
       {media && <PreparedOutputs media={media} />}
+      {ocr && <OcrView ocr={ocr} />}
       {transcript && <TranscriptView transcript={transcript} />}
     </section>
   );
@@ -311,7 +329,7 @@ function PreparedOutputs({ media }: { media: PreparedMedia }) {
         </ul>
       )}
       <p className="text-xs text-muted">
-        These are the inputs for on-screen text and visual analysis, which are not built yet.
+        These are the inputs for visual analysis, which is not built yet.
       </p>
     </div>
   );

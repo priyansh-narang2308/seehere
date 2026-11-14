@@ -81,6 +81,16 @@ export type Transcript = {
   segments: { start_s: number; end_s: number; text: string; words: TranscriptWord[] }[];
 };
 
+/** Text read from each keyframe; boxes are fractions of the frame. */
+export type OcrResult = {
+  available: boolean;
+  keyframes: {
+    frame_id: string;
+    t_s: number;
+    regions: { text: string; confidence: number; x: number; y: number; w: number; h: number }[];
+  }[];
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

@@ -41,7 +41,7 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "ocr",
     name: "On-screen text (OCR)",
     summary: "Text and numbers are read from each keyframe, with their position and confidence.",
-    status: "not_built",
+    status: "built",
   },
   {
     id: "slides",
