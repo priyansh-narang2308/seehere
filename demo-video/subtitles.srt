@@ -1,0 +1,207 @@
+1
+00:00:01,500 --> 00:00:04,690
+A lecturer points at the screen and says: look at this chart.
+
+2
+00:00:09,000 --> 00:00:13,870
+For most students, that sentence is enough. For a blind or low-vision student,
+
+3
+00:00:13,920 --> 00:00:18,610
+it's a gap. The chart, its labels, its numbers: all of it is on screen,
+
+4
+00:00:18,660 --> 00:00:20,510
+and none of it is spoken aloud.
+
+5
+00:00:24,400 --> 00:00:25,490
+This is SeeHere.
+
+6
+00:00:28,300 --> 00:00:33,050
+SeeHere takes a recorded lecture and adds short audio descriptions of what's on
+
+7
+00:00:33,100 --> 00:00:36,090
+screen that the lecturer never reads aloud.
+
+8
+00:00:36,700 --> 00:00:41,050
+Every description is linked to its evidence, placed in a natural pause,
+
+9
+00:00:41,320 --> 00:00:44,510
+and reviewed by the instructor before anything is published.
+
+10
+00:00:46,199 --> 00:00:50,089
+Here's how it works. The video is split into audio and frames.
+
+11
+00:00:50,899 --> 00:00:56,329
+Speech is transcribed with word timings. Slide changes become keyframes.
+
+12
+00:00:56,379 --> 00:00:59,189
+On-screen text is read with OCR,
+
+13
+00:00:59,239 --> 00:01:03,009
+and a vision model on Vultr Serverless Inference finds the charts,
+
+14
+00:01:03,239 --> 00:01:04,569
+tables and diagrams.
+
+15
+00:01:05,252 --> 00:01:07,562
+SeeHere compares what's shown with what's said,
+
+16
+00:01:07,612 --> 00:01:12,682
+and keeps the visuals that are never spoken. When the lecturer says this, or here,
+
+17
+00:01:12,772 --> 00:01:14,682
+it works out which region they mean.
+
+18
+00:01:15,292 --> 00:01:19,522
+Descriptions are written only from that evidence, every claim is checked,
+
+19
+00:01:19,632 --> 00:01:24,522
+and a constraint solver places them in the pauses. Then the voice is generated,
+
+20
+00:01:24,692 --> 00:01:26,342
+and the timing is checked again.
+
+21
+00:01:28,687 --> 00:01:34,377
+Let's run it on the live site. I upload a 96-second lecture on photosynthesis,
+
+22
+00:01:34,787 --> 00:01:38,397
+give it a title, and confirm I have permission to process it.
+
+23
+00:01:45,687 --> 00:01:50,557
+Processing starts straight away. Each step is a real job on the server:
+
+24
+00:01:50,767 --> 00:01:55,097
+preparing the media, transcribing speech, detecting slide changes,
+
+25
+00:01:55,307 --> 00:01:59,497
+reading on-screen text, and asking the vision model what each slide shows.
+
+26
+00:02:00,387 --> 00:02:02,597
+In under a minute, the lecture is ready.
+
+27
+00:02:19,287 --> 00:02:21,457
+The player shows the original lecture,
+
+28
+00:02:21,607 --> 00:02:26,857
+with each description voiced in a gap in the speech. Next to it is the transcript,
+
+29
+00:02:27,047 --> 00:02:29,417
+with the descriptions placed where they'll be heard.
+
+30
+00:02:32,287 --> 00:02:36,617
+Every description carries a verification state. Open its evidence,
+
+31
+00:02:36,687 --> 00:02:40,997
+and you see where it came from: the keyframe, the region on screen,
+
+32
+00:02:41,127 --> 00:02:44,897
+the text that was read, and what the lecturer was saying at that moment.
+
+33
+00:02:47,387 --> 00:02:51,737
+One description is held back. The text reader got the equation wrong,
+
+34
+00:02:51,847 --> 00:02:55,177
+so SeeHere won't voice it until the instructor checks it.
+
+35
+00:02:56,487 --> 00:03:00,577
+The schedule shows where each description sits between stretches of speech.
+
+36
+00:03:01,067 --> 00:03:06,497
+And everything exports: a WebVTT description track, a described video,
+
+37
+00:03:06,627 --> 00:03:11,457
+the audio clips, an accessible transcript, and a coverage and verification report.
+
+38
+00:03:15,587 --> 00:03:19,277
+What makes SeeHere different is that it doesn't trust itself blindly.
+
+39
+00:03:19,884 --> 00:03:23,094
+Descriptions come only from evidence it can point to.
+
+40
+00:03:23,484 --> 00:03:26,954
+Quoted text and numbers are checked against what was read on screen.
+
+41
+00:03:27,384 --> 00:03:30,394
+A constraint solver, built on Google's OR-Tools,
+
+42
+00:03:30,444 --> 00:03:35,014
+chooses which descriptions fit the pauses, so it never talks over the lecturer.
+
+43
+00:03:35,584 --> 00:03:37,274
+After the voice is generated,
+
+44
+00:03:37,384 --> 00:03:40,674
+the real clip lengths are measured and the plan is checked again.
+
+45
+00:03:40,984 --> 00:03:44,054
+And when the evidence is uncertain, a person decides.
+
+46
+00:03:45,661 --> 00:03:49,311
+All of this runs on Vultr. The app, the API,
+
+47
+00:03:49,741 --> 00:03:53,831
+the database and the processing worker run on a Vultr Cloud Compute instance,
+
+48
+00:03:53,881 --> 00:03:55,791
+served over HTTPS.
+
+49
+00:03:57,761 --> 00:04:00,911
+The live status page shows the health of every part,
+
+50
+00:04:01,181 --> 00:04:05,971
+the measured time of every stage, and every call to Vultr Serverless Inference,
+
+51
+00:04:06,021 --> 00:04:08,131
+with its tokens and latency.
+
+52
+00:04:10,961 --> 00:04:13,561
+SeeHere. Making every part of a lecture accessible.
