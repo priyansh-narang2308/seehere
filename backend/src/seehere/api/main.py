@@ -17,6 +17,7 @@ from seehere.api.ocr import router as ocr_router
 from seehere.api.projects import router as projects_router
 from seehere.api.report import router as report_router
 from seehere.api.schedule import router as schedule_router
+from seehere.api.security import install_security
 from seehere.api.transcript import router as transcript_router
 from seehere.api.visuals import router as visuals_router
 from seehere.core.config import get_settings
@@ -40,6 +41,9 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     install_error_handlers(app)
+    app.state.rate_limiter = install_security(
+        app, lambda: app.dependency_overrides.get(get_settings, get_settings)()
+    )
     app.include_router(projects_router)
     app.include_router(jobs_router)
     app.include_router(transcript_router)

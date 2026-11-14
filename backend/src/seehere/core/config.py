@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", description="development | test | production")
     log_level: str = "INFO"
     api_cors_origins: str = "http://localhost:3000"
+    # Rate limits per client address (Task 32). The player streams video and audio with many
+    # range requests, so reads are generous; uploads are the expensive requests.
+    rate_limit_enabled: bool = True
+    rate_limit_uploads_per_hour: int = Field(default=20, ge=1)
+    rate_limit_writes_per_minute: int = Field(default=60, ge=1)
+    rate_limit_reads_per_minute: int = Field(default=1200, ge=1)
+    trust_proxy_headers: bool = False  # true behind Caddy, which sets X-Forwarded-For
 
     # --- storage ---
     database_url: str = "postgresql+psycopg://seehere:seehere@localhost:5433/seehere"

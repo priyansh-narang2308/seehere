@@ -92,3 +92,12 @@ def sessions(migrated_engine: Engine) -> Iterator[sessionmaker[Session]]:
     yield factory
     with migrated_engine.begin() as conn:
         conn.execute(text("TRUNCATE project CASCADE"))
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits() -> Iterator[None]:
+    """Each test starts with empty rate-limit counters (the app object is shared)."""
+    from seehere.api.main import app
+
+    app.state.rate_limiter.reset()
+    yield
