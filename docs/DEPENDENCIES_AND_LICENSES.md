@@ -49,10 +49,12 @@ No new backend packages: upload streaming uses FastAPI/Starlette and the standar
 No new dependencies. The job queue uses Postgres and SQLAlchemy; media preparation calls the existing FFmpeg/FFprobe binaries.
 
 ## Planned (added in their tasks; licence re-checked when added)
-OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (MIT; voice licences per voice).
+OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (`piper-tts`, GPL-3.0 since 1.3, used unmodified as a library) · default voice `en_US-ljspeech-medium`, trained on LJ Speech (public domain).
 
 ## Baseline (not part of our product)
 microsoft/ai-audio-descriptions (MIT) is run unmodified as a comparison baseline in Task 29, with attribution. Its code is not copied into SeeHere.
 
 ## Hosted models (Vultr Serverless Inference, used via API)
 Model licences are per the Vultr catalog and model cards. `auk` is "evaluation only", so we avoid it.
+
+**Open licence question (Piper):** `piper-tts` 1.3+ is GPL-3.0-or-later (older Piper releases were MIT). The repository has no licence file yet. Importing it as a library may require the combined work to be distributed under GPL-3.0. Options before release: accept GPL-3.0 for the project, run Piper as a separate process, or use only the Vultr voice. This needs the owner's decision.

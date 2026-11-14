@@ -567,3 +567,27 @@
 ### Known limitations
 - Standard mode only: a lecture that talks over every slide leaves most descriptions unvoiced. Extended mode (pausing the video) comes later.
 - Durations are estimates until TTS (Task 23). Greedy is not optimal; CP-SAT (Task 20) is the comparison.
+
+## Tasks 20–22: CP-SAT scheduler, extended pauses, speech synthesis (2026-11-14) ✅ / ✅ / 🟡
+
+### Implemented
+- **Task 20, CP-SAT** (OR-Tools): a joint model over (cue, wording, window) choices, using optional intervals, at-most-one per cue and one NoOverlap. The objective is lexicographic: priority first, then spoken time, then earliness. One worker and a fixed seed make it deterministic. Skipped cues get a reason, including "its pause went to higher-priority descriptions". The job runs greedy and CP-SAT on identical inputs, stores both runs plus a comparison, and selects CP-SAT only when it is valid and at least as good (ADR-007). The job is renamed `schedule.plan`.
+- **Task 21, extended mode:** cues left out of the standard schedule may pause the video. A pause can start at a word end or after another description; the description first uses the silence there and the video holds for the rest. The shortest wording is used. The total pause is capped at `extended_pause_budget_pct` (8%) of the video. Every pause stores its reason (enforced by a DB constraint and the validator). Results are stored as an extended `schedule_run`, served with `?mode=extended`.
+- **Task 22, TTS:** a `speech.synthesize` job produces one WAV clip per scheduled wording. Duration is measured from the file. Clips are reused while their text and voice are unchanged.
+  - **Piper** (local, `en_US-ljspeech-medium`, `make tts-voice`) is the default and is TESTED with real audio.
+  - The **Vultr `/audio/speech`** adapter is DOCUMENTED. It is tested with a mocked transport (request shape, errors never leak the key), and its live test is opt-in (`SEEHERE_LIVE_VULTR_TTS=1`) because calls cost credit.
+  - The API is `GET /api/audio/{clip_id}`.
+- **Web:** a Standard/Extended toggle, the greedy vs CP-SAT comparison, the reason for each pause, measured spoken length, and an audio player per description. The "Speech synthesis" stage is marked built; "Timing check" is a separate stage, not built yet.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_cp_sat.py` (64) | Joint solving beats greedy on a contested pause; 60 random lectures: valid, deterministic, never below greedy on priority |
+| `test_extended.py` (64) | Silence used first; budget by priority; standard placements kept; 60 random lectures valid |
+| `test_tts.py` | Real Piper audio (non-silent, longer text is longer); Vultr request, errors and key redaction |
+| Backend / Web | **589 passed, 3 skipped** / **114 passed**; `make check` and `next build` pass |
+| Live (pointers demo) | All 11 jobs succeeded. CP-SAT and greedy tied on priority (26%); CP-SAT voiced 3.76 s versus greedy's 1.84 s by fitting the longer cue. Extended: remaining cues need 1.4–4.1 s pauses against a 1.2 s budget, so each is skipped with that reason. Clips play in the browser |
+
+### Known limitations
+- 🟡 Task 22 is not complete: Vultr TTS is not TESTED until a live call is approved. **Piper 1.3+ is GPL-3.0**: the licence question is recorded in DEPENDENCIES_AND_LICENSES.
+- Placements still use estimated lengths. A measured clip can run a few ms past its slot (live: 3.762 s against a 3.76 s slot). Re-solving with measured durations is Task 23.
