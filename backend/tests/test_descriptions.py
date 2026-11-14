@@ -167,7 +167,7 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert client.get(f"/api/projects/{pid}/schedule").json()["available"] is False
     # 18 words of continuous speech from 0.5 to 5.9 s, then silence until the end (12 s).
     say(sessions, pid, [(0.5 + 0.3 * i, w) for i, w in enumerate(SPEECH.split())])
-    run_jobs(sessions, settings, (*TEXT_CHAIN, "claims.verify", "schedule.greedy"))
+    run_jobs(sessions, settings, (*TEXT_CHAIN, "claims.verify", "schedule.plan"))
 
     cues = client.get(f"/api/projects/{pid}/cues").json()["cues"]
     # Every quote and number was read on screen, so each cue is a verified text match.
@@ -176,7 +176,10 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert ledger["checks"] and {c["result"] for c in ledger["checks"]} == {"pass"}
 
     plan = client.get(f"/api/projects/{pid}/schedule").json()
-    assert (plan["solver"], plan["mode"], plan["status"]) == ("greedy", "standard", "succeeded")
+    assert (plan["solver"], plan["mode"], plan["status"]) == ("cp_sat", "standard", "succeeded")
+    cmp = plan["comparison"]  # both solvers ran on the same inputs; CP-SAT is never worse
+    assert cmp["cp_sat"]["status"] == "optimal"
+    assert cmp["cp_sat"]["priority_placed_share"] >= cmp["greedy"]["priority_placed_share"]
     assert plan["windows"] == [{"start_s": 6.05, "end_s": pytest.approx(12.0, abs=0.1)}]
     placed = plan["placements"]
     assert placed, plan
@@ -195,3 +198,21 @@ def test_cues_are_verified_and_scheduled_into_speech_pauses(
     assert {p["text"] for p in placed} <= {c["text_short"] for c in cues} | {
         c["text_medium"] for c in cues
     } | {c["text_long"] for c in cues}
+
+    ext = client.get(f"/api/projects/{pid}/schedule?mode=extended").json()
+    assert (ext["mode"], ext["status"]) == ("extended", "succeeded")
+    assert ext["pause_budget_s"] == pytest.approx(12.0 * 0.08, abs=0.05)
+    assert 0 <= ext["paused_s"] <= ext["pause_budget_s"]
+    standard = {(p["cue_id"], p["start_s"]) for p in placed}
+    assert standard <= {(p["cue_id"], p["start_s"]) for p in ext["placements"]}
+    for p in ext["placements"]:
+        assert (p["pause_s"] > 0) == (p["pause_reason"] is not None)
+    assert len(ext["placements"]) + len(ext["not_placed"]) == len(cues)
+
+    # Speech synthesis: every wording a schedule uses gets real audio, measured from the file.
+    run_jobs(sessions, settings, ("speech.synthesize",))
+    voiced = client.get(f"/api/projects/{pid}/schedule?mode=extended").json()["placements"]
+    for p in voiced:
+        assert p["audio_s"] > 0.3
+        wav = client.get(p["audio_url"])
+        assert wav.status_code == 200 and wav.content[:4] == b"RIFF"
