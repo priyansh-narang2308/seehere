@@ -1,0 +1,30 @@
+# HTTPS for SeeHere (Task 34). Caddy obtains and renews the certificate automatically.
+# SEEHERE_DOMAIN is a real domain pointing at the server, or <ip-with-dashes>.sslip.io.
+{$SEEHERE_DOMAIN} {
+	encode zstd gzip
+
+	# Lecture uploads go straight to the API; the API enforces its own size limit.
+	request_body {
+		max_size 520MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
