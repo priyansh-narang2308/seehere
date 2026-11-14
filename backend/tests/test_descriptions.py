@@ -157,3 +157,41 @@ def test_silent_lecture_still_gets_descriptions(
     assert body["available"] and len(body["cues"]) == 5
     refs = client.get(f"/api/projects/{pid}/references").json()
     assert refs == {"available": True, "references": []}
+
+
+def test_cues_are_verified_and_scheduled_into_speech_pauses(
+    client: TestClient, sessions: Sessions, settings: Settings, deck: Path
+) -> None:
+    pid = add_project(sessions, settings, deck)
+    run_jobs(sessions, settings, UNITS_CHAIN)
+    assert client.get(f"/api/projects/{pid}/schedule").json()["available"] is False
+    # 18 words of continuous speech from 0.5 to 5.9 s, then silence until the end (12 s).
+    say(sessions, pid, [(0.5 + 0.3 * i, w) for i, w in enumerate(SPEECH.split())])
+    run_jobs(sessions, settings, (*TEXT_CHAIN, "claims.verify", "schedule.greedy"))
+
+    cues = client.get(f"/api/projects/{pid}/cues").json()["cues"]
+    # Every quote and number was read on screen, so each cue is a verified text match.
+    assert {c["verification_state"] for c in cues} == {"verified_text_match"}
+    ledger = client.get(f"/api/cues/{cues[0]['id']}/evidence").json()
+    assert ledger["checks"] and {c["result"] for c in ledger["checks"]} == {"pass"}
+
+    plan = client.get(f"/api/projects/{pid}/schedule").json()
+    assert (plan["solver"], plan["mode"], plan["status"]) == ("greedy", "standard", "succeeded")
+    assert plan["windows"] == [{"start_s": 6.05, "end_s": pytest.approx(12.0, abs=0.1)}]
+    placed = plan["placements"]
+    assert placed, plan
+    for a, b in zip(placed, placed[1:], strict=False):
+        assert a["end_s"] <= b["start_s"]  # never over each other
+    for p in placed:  # never over speech
+        assert 6.05 <= p["start_s"] < p["end_s"] <= plan["windows"][0]["end_s"]
+    # Slide 1 (0-5 s, +1 s grace) is talked over the whole time: it cannot be voiced.
+    reasons = {n["text"]: n["reason"] for n in plan["not_placed"]}
+    assert reasons["On screen: “Quarterly Revenue”."] == "no pause in speech while it is on screen"
+    assert {p["text"] for p in placed} <= {
+        "On screen: “Next steps”.",
+        "On screen: “Hire 3 engineers by March”.",
+    }
+    assert len(placed) + len(plan["not_placed"]) == len(cues)
+    assert {p["text"] for p in placed} <= {c["text_short"] for c in cues} | {
+        c["text_medium"] for c in cues
+    } | {c["text_long"] for c in cues}

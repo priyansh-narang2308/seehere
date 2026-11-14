@@ -107,7 +107,11 @@ class Settings(BaseSettings):
     local_stt_model_dir: Path | None = None
     vultr_stt_timeout_s: float = 120.0
 
-    # --- scheduling ---
+    # --- scheduling (Tasks 18-19) ---
+    window_pad_s: float = 0.15  # kept clear after a word ends and before the next begins
+    window_min_s: float = 0.8  # shorter pauses cannot hold a description
+    schedule_grace_s: float = 1.0  # a cue may finish this long after its visual leaves
+    description_words_per_s: float = 2.6  # speaking-rate estimate until TTS is measured
     extended_pause_budget_pct: float = 8.0
     solver_time_limit_s: float = 2.0
 
