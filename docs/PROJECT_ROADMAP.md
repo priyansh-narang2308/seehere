@@ -31,7 +31,7 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 09 | Scene and slide change detection | P0 | ✅ | Keyframes with timestamps; dedupe; precision checked on the demo clip |
 | 10 | OCR and text evidence | P0 | ✅ | Tesseract TSV → regions with boxes, confidence and frame; number normalization utilities tested |
 | 11 | Slide deck ingestion (PDF/PPTX) | P1 | ✅ | PDF via pypdf (PyMuPDF is AGPL); PPTX parsed in memory with zip-bomb/path/XML guards; slide↔keyframe alignment by text similarity |
-| 12 | Multimodal visual analysis | P0 | 🟡 | Units with region boxes and per-appearance spans ✅ (OCR text blocks by default); Vultr VLM adapter with JSON-schema validation and one retry ✅ (mock-tested); **live TESTED status awaits owner approval to spend credit** |
+| 12 | Multimodal visual analysis | P0 | ✅ | Units with region boxes and per-appearance spans; schema-validated vision units from Gemini (OBSERVED live: 7 calls, 0 failed on the demo lecture) or Vultr (adapter mock-tested; live call blocked by a 401 key); keyframes analysed concurrently; OCR fallback when the model stays down |
 | 13 | Seen-versus-said analysis | P0 | ✅ | Per-unit coverage score vs. transcript window; uncovered units prioritized; unit tests |
 | 14 | Visual reference resolution | P0 | ✅ | Deictic phrase detection; region linking with confidence; below threshold → NEEDS REVIEW; ambiguous case in demo clip flagged, not guessed |
 | 15 | Evidence ledger backend | P0 | ✅ | Full lineage query for any cue; API `GET /api/cues/{id}/evidence` |
@@ -53,8 +53,8 @@ UPLOAD (05) → JOBS (06) → MEDIA (07) → STT (08) → SCENES (09) → OCR (1
 | 31 | End-to-end and failure testing | P0 | ✅ | Full flow + invalid/malformed/provider-failure/interrupted-job cases |
 | 32 | Security, privacy and a11y audit | P1 | 🟡 | Endpoint review, rate limits, retention job, axe + manual SR pass, fixes. Done except the screen-reader pass: keyboard and accessibility-tree checks only |
 | 33 | Performance, monitoring, cost | P2 | ✅ | Measured stage timings, resource use, API spend; limits re-tuned |
-| 34 | Production packaging and Vultr deploy | P0 | ⏳ | Dockerfiles, prod Compose, Caddy HTTPS, health checks, volumes, scripts, rollback; **paid VM only after explicit approval**; public URL verified |
-| 35 | Release, competition package, demo | P0 | ⏳ | README, diagrams, screenshots, benchmark, Vultr docs, demo video on Vultr, Q&A, limitations, reach evidence, cost report, checklist |
+| 34 | Production packaging and Vultr deploy | P0 | 🟡 | Dockerfiles, prod Compose, Caddy HTTPS, health checks, volumes, cloud-init bootstrap, deploy/rollback/backup scripts ✅, verified as a full local prod stack over HTTPS; **public Vultr instance awaits the owner's approval of plan and cost** |
+| 35 | Release, competition package, demo | P0 | 🟡 | README, 5 SVG diagrams, production screenshots, deployment guide, measured results ✅; public URL, demo video, reach evidence and the Vultr Community submission pending |
 
 ## Flagship demo clip (self-recorded; built during Tasks 07–14)
 Contains:

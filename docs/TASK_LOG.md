@@ -734,3 +734,27 @@ Both solvers voice one description because the first slide has no pause long eno
 - No screen-reader pass (VoiceOver/NVDA) and no testing with screen-reader users: the audit used axe, the accessibility tree and a keyboard pass, so Task 32 stays 🟡. This is not a WCAG conformance claim.
 - Rate limits are in memory and per API process. Several API processes would each count separately.
 - Peak memory is the worker's high-water mark, not each job's own peak.
+
+## Task 12 (completed), 34 and 35: live vision, production packaging, release docs (2026-11-14)
+
+### Task 12: live multimodal analysis
+- Gemini vision through its OpenAI-compatible endpoint (`VISION_PROVIDER=gemini`, `gemini-3.5-flash-lite`). JSON mode with the schema in the prompt, because Gemini rejected the full schema as a response format ("too many states"); replies are still validated locally.
+- Keyframes are analysed concurrently (`VISION_CONCURRENCY`, default 4). If the model is still unavailable on the last attempt, the stage keeps OCR units instead of failing the lecture; a rejected key still fails with a clear message.
+- Provider error reasons are kept (truncated, key redacted) so a failure says why.
+- Tests pin `VISION_PROVIDER=none`, so the suite never spends credit (it had used up the free Gemini quota once).
+- OBSERVED, demo lecture (96 s, 6 slides): 7 vision calls, 0 failed, 10,911 prompt and 1,966 completion tokens; upload to ready in 25.5 s (`bench/results/perf-photosynthesis.md`).
+
+### OCR fix found in QA
+Tesseract joined bar labels that only share a row ("Light Electron transport Calvin cycle") into one line, so quotes of single labels could never verify and the cue was held. Lines are now split where a word gap exceeds 2 text heights. On the demo, held cues fell from 2 to 1; the remaining one is the equation, where OCR misread `6H2O` as `6BH20` and the vision model read it correctly, so holding it is right.
+
+### Task 34: production packaging
+- `backend/Dockerfile` (ffmpeg, Tesseract, Whisper `small.en` and the Piper voice baked in, offline at runtime, non-root), `web/Dockerfile` (Next.js standalone, non-root), `deploy/docker-compose.prod.yml` (project `seehere-prod`: caddy, web, api, worker, one-shot migrate, Postgres; named volumes; log rotation), `deploy/Caddyfile` (HTTPS, HSTS, `/api/*` to the API).
+- `deploy/cloud-init.yaml` + `bootstrap.sh` (Docker, ufw 22/80/443, 4 GB swap, sslip.io domain, random DB password), `deploy.sh` (tags `:previous`), `rollback.sh`, `backup-db.sh`. Guide: `docs/DEPLOYMENT.md`.
+- OBSERVED, full prod stack locally (`SEEHERE_DOMAIN=localhost`): all services healthy, migrations ran, every page 200 over HTTPS, HTTP redirects to HTTPS, HSTS and CSP present, writes without the app header refused (403), the demo lecture processed in 31 s inside the containers, exports downloaded through Caddy.
+- Not yet done: the public Vultr instance. It is chargeable, so it waits for the owner's approval of the plan and cost.
+
+### Task 35: release material
+README rewritten (25 sections), five SVG diagrams in `docs/assets/`, screenshots from the production build in `docs/assets/screenshots/`. Home page and footer now say "Research prototype" and state the limits instead of "Development build".
+
+### Checks
+`make check`: ruff, format, mypy, **647 passed / 4 skipped** backend, ESLint, tsc, **128 passed** web. No horizontal scrolling at 390 px on any page (the Status table scrolls inside its own container).
