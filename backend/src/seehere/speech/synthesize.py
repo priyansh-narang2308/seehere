@@ -26,7 +26,7 @@ from seehere.jobs.queue import ClaimedJob
 from seehere.jobs.worker import JobContext
 from seehere.media.storage import MediaStore, project_dir
 from seehere.providers.base import TextToSpeech
-from seehere.providers.tts_piper import PiperTTS, PiperVoiceMissing
+from seehere.providers.tts_piper import PiperError, PiperTTS, PiperVoiceMissing
 from seehere.providers.tts_vultr import VultrTTS
 
 log = logging.getLogger("seehere.tts")
@@ -52,7 +52,7 @@ def make_tts(settings: Settings) -> TextToSpeech:
             voice=settings.vultr_tts_voice,
             timeout_s=settings.vultr_tts_timeout_s,
         )
-    return PiperTTS(settings.piper_voice_dir, settings.piper_voice)
+    return PiperTTS(settings.piper_voice_dir, settings.piper_voice, piper_bin=settings.piper_bin)
 
 
 def _sha256(path: Path) -> str:
@@ -123,7 +123,7 @@ def synthesize_speech(ctx: JobContext, job: ClaimedJob) -> None:
             path = store.resolve(rel)
             try:
                 out = tts.synthesize(text, path)
-            except PiperVoiceMissing as e:
+            except (PiperVoiceMissing, PiperError) as e:
                 raise PermanentJobError(str(e)) from None
             s.add(
                 AudioClip(

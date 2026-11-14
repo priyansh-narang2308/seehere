@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import wave
 from pathlib import Path
 
@@ -20,7 +21,8 @@ from seehere.providers.tts_vultr import VultrTTS, VultrTTSError
 
 VOICE_DIR = Settings().piper_voice_dir
 needs_voice = pytest.mark.skipif(
-    not (VOICE_DIR.expanduser() / f"{Settings().piper_voice}.onnx").is_file(),
+    shutil.which("piper") is None
+    or not (VOICE_DIR.expanduser() / f"{Settings().piper_voice}.onnx").is_file(),
     reason="Piper voice not installed (make tts-voice)",
 )
 
@@ -51,9 +53,19 @@ def test_piper_speaks_and_longer_text_takes_longer(tmp_path: Path) -> None:
     assert peak > 0  # real sound, not silence
 
 
-def test_missing_piper_voice_is_a_clear_error(tmp_path: Path) -> None:
+def test_missing_piper_or_voice_is_a_clear_error(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="make tts-voice"):
         PiperTTS(tmp_path).synthesize("Hello.", tmp_path / "x.wav")
+    with pytest.raises(RuntimeError, match="make tts-voice"):
+        PiperTTS(VOICE_DIR, piper_bin="no-such-piper").synthesize("Hi.", tmp_path / "x.wav")
+
+
+@needs_voice
+def test_piper_runs_as_a_separate_process_and_is_never_imported(tmp_path: Path) -> None:
+    import sys
+
+    PiperTTS(VOICE_DIR).synthesize("Hello.", tmp_path / "h.wav")
+    assert "piper" not in sys.modules  # GPL-3.0: kept out of SeeHere's process
 
 
 def test_vultr_request_shape_and_measured_duration(tmp_path: Path) -> None:

@@ -589,5 +589,8 @@
 | Live (pointers demo) | All 11 jobs succeeded. CP-SAT and greedy tied on priority (26%); CP-SAT voiced 3.76 s versus greedy's 1.84 s by fitting the longer cue. Extended: remaining cues need 1.4–4.1 s pauses against a 1.2 s budget, so each is skipped with that reason. Clips play in the browser |
 
 ### Known limitations
-- 🟡 Task 22 is not complete: Vultr TTS is not TESTED until a live call is approved. **Piper 1.3+ is GPL-3.0**: the licence question is recorded in DEPENDENCIES_AND_LICENSES.
+- 🟡 Task 22 is not complete: Vultr TTS is not TESTED until a live call is approved. **Piper 1.3+ is GPL-3.0**: resolved by running it as a separate process (see below).
 - Placements still use estimated lengths. A measured clip can run a few ms past its slot (live: 3.762 s against a 3.76 s slot). Re-solving with measured durations is Task 23.
+
+### Follow-up: Piper as a separate process (2026-11-14)
+- `piper-tts` was removed from the project's dependencies. It is installed with `uv tool install` (`make tts-voice`) and run as a subprocess, with the text on stdin and output to a temporary file that is measured and then moved into place. A timeout, a non-zero exit or a missing binary/voice each give a clear job error. A test asserts the module is never imported.

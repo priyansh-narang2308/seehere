@@ -49,7 +49,7 @@ No new backend packages: upload streaming uses FastAPI/Starlette and the standar
 No new dependencies. The job queue uses Postgres and SQLAlchemy; media preparation calls the existing FFmpeg/FFprobe binaries.
 
 ## Planned (added in their tasks; licence re-checked when added)
-OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (`piper-tts`, GPL-3.0 since 1.3, used unmodified as a library) · default voice `en_US-ljspeech-medium`, trained on LJ Speech (public domain).
+OR-Tools (Apache-2.0) · faster-whisper (MIT) + Whisper model weights (MIT) · PySceneDetect (BSD-3) · OpenCV (Apache-2.0) · pypdf (BSD-3, used instead of AGPL PyMuPDF) · defusedxml (PSF) · Piper TTS (`piper-tts`, GPL-3.0 since 1.3; installed as a separate tool with `uv tool install` and run as its own process, never imported or bundled in SeeHere's package) · default voice `en_US-ljspeech-medium`, trained on LJ Speech (public domain).
 
 ## Baseline (not part of our product)
 microsoft/ai-audio-descriptions (MIT) is run unmodified as a comparison baseline in Task 29, with attribution. Its code is not copied into SeeHere.
@@ -57,4 +57,4 @@ microsoft/ai-audio-descriptions (MIT) is run unmodified as a comparison baseline
 ## Hosted models (Vultr Serverless Inference, used via API)
 Model licences are per the Vultr catalog and model cards. `auk` is "evaluation only", so we avoid it.
 
-**Open licence question (Piper):** `piper-tts` 1.3+ is GPL-3.0-or-later (older Piper releases were MIT). The repository has no licence file yet. Importing it as a library may require the combined work to be distributed under GPL-3.0. Options before release: accept GPL-3.0 for the project, run Piper as a separate process, or use only the Vultr voice. This needs the owner's decision.
+**Piper licence (resolved 2026-11-14):** `piper-tts` 1.3+ is GPL-3.0-or-later. SeeHere does not import or link it: it is a separate executable, invoked like ffmpeg with a fixed argument list and the text on stdin. A test asserts the `piper` module is never loaded into SeeHere's process. SeeHere's own licence stays the owner's choice. Anyone redistributing a Docker image that contains Piper must also meet GPL-3.0 for that binary (offer its source).

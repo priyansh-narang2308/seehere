@@ -120,6 +120,7 @@ class Settings(BaseSettings):
     tts_provider: Literal["piper", "vultr"] = "piper"
     piper_voice_dir: Path = Path("~/.cache/seehere/piper")
     piper_voice: str = "en_US-ljspeech-medium"
+    piper_bin: str = "piper"  # a separate tool (GPL-3.0), run as a process, never imported
     vultr_tts_voice: str = "serena"
     vultr_tts_timeout_s: float = 60.0
 
