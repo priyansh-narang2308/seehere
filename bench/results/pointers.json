@@ -1,0 +1,221 @@
+{
+  "item": "pointers",
+  "source_sha256": "30d4c5c4a20c9f4e07df691d33227768a32447c61583fadc73909a62728f7ae2",
+  "generated_at": "2026-11-14T09:37:18+00:00",
+  "systems": [
+    {
+      "system": "microsoft-ai-audio-descriptions",
+      "evidence": "UNAVAILABLE",
+      "note": "not run: GenerateAD needs an Azure Foundry resource (Speech + GPT), which is chargeable and was not provisioned. See bench/microsoft/README.md.",
+      "metrics": null,
+      "descriptions": []
+    },
+    {
+      "system": "seehere-greedy",
+      "evidence": "OBSERVED",
+      "note": "stored greedy schedule",
+      "metrics": {
+        "descriptions": 1,
+        "described_s": 2.09,
+        "paused_s": 0.0,
+        "speech_overlap_s": 0.0,
+        "visual_recall": 0.2,
+        "fact_recall": 0.1429,
+        "unsupported_numbers": [],
+        "per_visual": [
+          {
+            "id": "title-1",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "revenue",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "margin",
+            "facts": 2,
+            "conveyed": []
+          },
+          {
+            "id": "title-2",
+            "facts": 1,
+            "conveyed": [
+              "Next steps"
+            ]
+          },
+          {
+            "id": "hire",
+            "facts": 2,
+            "conveyed": []
+          }
+        ]
+      },
+      "descriptions": [
+        {
+          "start_s": 11.09,
+          "end_s": 13.18,
+          "pause_s": 0.0,
+          "text": "On screen: “Next steps”."
+        }
+      ]
+    },
+    {
+      "system": "seehere-cp-sat",
+      "evidence": "OBSERVED",
+      "note": "status optimal",
+      "metrics": {
+        "descriptions": 1,
+        "described_s": 3.831,
+        "paused_s": 0.0,
+        "speech_overlap_s": 0.0,
+        "visual_recall": 0.2,
+        "fact_recall": 0.2857,
+        "unsupported_numbers": [],
+        "per_visual": [
+          {
+            "id": "title-1",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "revenue",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "margin",
+            "facts": 2,
+            "conveyed": []
+          },
+          {
+            "id": "title-2",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "hire",
+            "facts": 2,
+            "conveyed": [
+              "Hire 3 engineers",
+              "March"
+            ]
+          }
+        ]
+      },
+      "descriptions": [
+        {
+          "start_s": 11.09,
+          "end_s": 14.921,
+          "pause_s": 0.0,
+          "text": "On screen: “Hire 3 engineers by March”."
+        }
+      ]
+    },
+    {
+      "system": "seehere-extended",
+      "evidence": "OBSERVED",
+      "note": "built on cp_sat",
+      "metrics": {
+        "descriptions": 1,
+        "described_s": 3.831,
+        "paused_s": 0.0,
+        "speech_overlap_s": 0.0,
+        "visual_recall": 0.2,
+        "fact_recall": 0.2857,
+        "unsupported_numbers": [],
+        "per_visual": [
+          {
+            "id": "title-1",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "revenue",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "margin",
+            "facts": 2,
+            "conveyed": []
+          },
+          {
+            "id": "title-2",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "hire",
+            "facts": 2,
+            "conveyed": [
+              "Hire 3 engineers",
+              "March"
+            ]
+          }
+        ]
+      },
+      "descriptions": [
+        {
+          "start_s": 11.09,
+          "end_s": 14.921,
+          "pause_s": 0.0,
+          "text": "On screen: “Hire 3 engineers by March”."
+        }
+      ]
+    },
+    {
+      "system": "seehere-reviewed",
+      "evidence": "SIMULATED",
+      "note": "no description was held for review, so an approving reviewer changes nothing",
+      "metrics": {
+        "descriptions": 1,
+        "described_s": 3.831,
+        "paused_s": 0.0,
+        "speech_overlap_s": 0.0,
+        "visual_recall": 0.2,
+        "fact_recall": 0.2857,
+        "unsupported_numbers": [],
+        "per_visual": [
+          {
+            "id": "title-1",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "revenue",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "margin",
+            "facts": 2,
+            "conveyed": []
+          },
+          {
+            "id": "title-2",
+            "facts": 1,
+            "conveyed": []
+          },
+          {
+            "id": "hire",
+            "facts": 2,
+            "conveyed": [
+              "Hire 3 engineers",
+              "March"
+            ]
+          }
+        ]
+      },
+      "descriptions": [
+        {
+          "start_s": 11.09,
+          "end_s": 14.921,
+          "pause_s": 0.0,
+          "text": "On screen: “Hire 3 engineers by March”."
+        }
+      ]
+    }
+  ]
+}

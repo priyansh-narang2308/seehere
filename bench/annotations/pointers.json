@@ -1,0 +1,15 @@
+{
+  "format": "seehere-bench/1",
+  "item": "pointers",
+  "source_sha256": "30d4c5c4a20c9f4e07df691d33227768a32447c61583fadc73909a62728f7ae2",
+  "duration_s": 15.0,
+  "notes": "Synthetic 15 s lecture: two rendered slides with a synthesized voice (macOS say). Visual text and facts annotated by reading the slide frames; speech intervals are the speech-to-text segments, checked against the spoken script. Facts list only what the speaker does not say aloud. Drafted by the developer, not independently annotated.",
+  "speech": [[0.0, 8.2], [8.93, 10.94]],
+  "visuals": [
+    {"id": "title-1", "t_start_s": 0.0, "t_end_s": 9.0, "text": "Quarterly Revenue", "facts": ["Quarterly Revenue"], "must_describe": true},
+    {"id": "revenue", "t_start_s": 0.0, "t_end_s": 9.0, "text": "Revenue rose 12.5% to $3.2M", "facts": ["$3.2M"], "must_describe": true},
+    {"id": "margin", "t_start_s": 0.0, "t_end_s": 9.0, "text": "Operating margin 41.7% in 2022", "facts": ["Operating margin", "2022"], "must_describe": true},
+    {"id": "title-2", "t_start_s": 9.0, "t_end_s": 15.0, "text": "Next steps", "facts": ["Next steps"], "must_describe": true},
+    {"id": "hire", "t_start_s": 9.0, "t_end_s": 15.0, "text": "Hire 3 engineers by March", "facts": ["Hire 3 engineers", "March"], "must_describe": true}
+  ]
+}
