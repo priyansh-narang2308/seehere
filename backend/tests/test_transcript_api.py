@@ -88,6 +88,7 @@ def test_transcript_round_trip(
     assert [j["label"] for j in client.get(f"/api/projects/{pid}/jobs").json()["jobs"]] == [
         "Media preparation",
         "Speech-to-text",
+        "Scene and slide changes",
     ]
 
 

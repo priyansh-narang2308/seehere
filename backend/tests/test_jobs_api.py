@@ -117,7 +117,7 @@ def test_worker_outputs_are_served(
     project = _upload(client, video)
     assert Worker(HANDLERS, settings=settings, sessions=sessions).run_once()
 
-    job, speech = _jobs(client, project["id"])
+    job, speech, scenes = _jobs(client, project["id"])
     assert (job["status"], job["progress"], job["error"]) == ("succeeded", 1.0, None)
     # Preparation queues speech-to-text, so the project is still processing.
     assert (speech["kind"], speech["label"], speech["status"]) == (
@@ -125,6 +125,7 @@ def test_worker_outputs_are_served(
         "Speech-to-text",
         "queued",
     )
+    assert (scenes["kind"], scenes["label"]) == ("scenes.detect", "Scene and slide changes")
     assert client.get(f"/api/projects/{project['id']}").json()["status"] == "processing"
 
     media = client.get(f"/api/projects/{project['id']}/media?preview=3").json()
@@ -147,6 +148,7 @@ def test_media_before_preparation_is_empty(client: TestClient, video: Path) -> N
     assert media == {
         "audio": None,
         "frames": {"count": 0, "fps": None, "first_s": None, "last_s": None, "preview": []},
+        "scenes": None,
     }
 
 

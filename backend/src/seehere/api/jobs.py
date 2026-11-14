@@ -150,9 +150,24 @@ class FramesOut(BaseModel):
     preview: list[FrameOut]
 
 
+class KeyframeOut(BaseModel):
+    id: uuid.UUID
+    t_s: float
+    scene_index: int
+
+
+class ScenesOut(BaseModel):
+    """Result of scene detection: the first appearance of each distinct picture, in order,
+    and how many times an earlier one came back."""
+
+    keyframes: list[KeyframeOut]
+    revisits: int
+
+
 class PreparedMedia(BaseModel):
     audio: AudioOut | None
     frames: FramesOut
+    scenes: ScenesOut | None = None  # None until scene detection has run
 
 
 @router.get("/projects/{project_id}/media", response_model=PreparedMedia)
@@ -167,13 +182,24 @@ def prepared_media(project_id: uuid.UUID, db: DbDep, preview: int = 12) -> Prepa
     ).first()
     frames = list(
         db.execute(
-            select(Frame.id, Frame.t_s)
+            select(Frame.id, Frame.t_s, Frame.is_keyframe, Frame.scene_index, Frame.phash)
             .join(MediaAsset, Frame.media_asset_id == MediaAsset.id)
             .where(MediaAsset.project_id == project_id)
             .order_by(Frame.t_s)
         )
     )
     probe = (audio.probe or {}) if audio else {}
+    scenes = None
+    if frames and all(f.phash for f in frames):
+        keyframes = [
+            KeyframeOut(id=f.id, t_s=f.t_s, scene_index=f.scene_index or 0)
+            for f in frames
+            if f.is_keyframe
+        ]
+        changes = sum(
+            1 for a, b in zip(frames, frames[1:], strict=False) if a.scene_index != b.scene_index
+        )
+        scenes = ScenesOut(keyframes=keyframes, revisits=changes + 1 - len(keyframes))
     picked = (
         [frames[round(i * (len(frames) - 1) / max(preview - 1, 1))] for i in range(preview)]
         if len(frames) > preview
@@ -195,6 +221,7 @@ def prepared_media(project_id: uuid.UUID, db: DbDep, preview: int = 12) -> Prepa
             last_s=frames[-1].t_s if frames else None,
             preview=[FrameOut(id=f.id, t_s=f.t_s) for f in dict.fromkeys(picked)],
         ),
+        scenes=scenes,
     )
 
 
