@@ -20,8 +20,6 @@
 
 **HackGlobal 2026 · Track 02: Multimodal & Accessibility**
 
-**[▶ Live demo](https://65-20-87-43.sslip.io)** · **[🎬 Demo video](https://drive.google.com/file/d/1JVgxgrURHVeb9HwqYSpLBWoVyXv5K5MS/view?usp=sharing)** · **[Live status](https://65-20-87-43.sslip.io/status)** · [How it works](#9-multimodal-pipeline) · [Evidence ledger](#10-the-visual-evidence-ledger) · [Run it locally](#14-local-installation) · [Measured results](#19-benchmarks-and-measured-results)
-
 </div>
 
 ---
