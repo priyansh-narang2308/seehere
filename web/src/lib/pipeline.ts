@@ -54,7 +54,7 @@ export const pipelineStages: readonly PipelineStage[] = [
     id: "vision",
     name: "Visual analysis",
     summary:
-      "What is on screen, with its region and when it is shown: text blocks from OCR, plus charts and diagrams from an optional vision model (not yet live-tested).",
+      "What is on screen, with its region and when it is shown: text blocks from OCR, plus charts and diagrams from a vision model (Vultr Serverless Inference on the live demo).",
     status: "built",
   },
   {
