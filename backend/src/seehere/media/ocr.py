@@ -4,7 +4,9 @@ Runs on keyframes only (Task 09): one per distinct picture, so a revisited slide
 
 For each keyframe the image is converted to grayscale and enlarged 2x when small (Tesseract reads
 small slide text much better that way), then `tesseract ... tsv` gives every word with its box
-and confidence. Words are grouped into lines; each line becomes an `ocr_region` with its text,
+and confidence. Words are grouped into lines; a line is split where the gap between two words is
+wider than COLUMN_GAP text heights, because Tesseract joins labels that merely sit side by side
+(bar labels, table cells) into one line. Each line becomes an `ocr_region` with its text,
 mean confidence (0..1) and box as fractions of the frame (0..1), so boxes survive any resize.
 
 The text is stored exactly as read. OCR is evidence with a confidence, not verified fact: it can
@@ -41,6 +43,9 @@ log = logging.getLogger("seehere.ocr")
 
 JOB_KIND = "ocr.extract"
 UPSCALE_BELOW_WIDTH = 1600
+COLUMN_GAP = 2.0  # word gap, in text heights, that starts a new region (word spaces are ~0.3)
+
+_Word = tuple[int, int, int, int, float, str]  # left, top, width, height, conf, text
 
 
 class OcrError(RuntimeError):
@@ -59,7 +64,7 @@ class OcrLine:
 
 def parse_tsv(tsv: str, width: int, height: int, min_confidence: float) -> list[OcrLine]:
     """Group Tesseract TSV words (level 5) into lines with a box and mean confidence."""
-    lines: dict[tuple[str, ...], list[tuple[int, int, int, int, float, str]]] = {}
+    lines: dict[tuple[str, ...], list[_Word]] = {}
     for row in tsv.splitlines()[1:]:
         cols = row.split("\t", 11)
         if len(cols) < 12 or cols[0] != "5":
@@ -75,7 +80,7 @@ def parse_tsv(tsv: str, width: int, height: int, min_confidence: float) -> list[
         lines.setdefault(tuple(cols[1:5]), []).append((left, top, w, h, conf, text))
 
     out = []
-    for words in lines.values():
+    for words in (part for line in lines.values() for part in _split_columns(line)):
         text = " ".join(t for *_, t in words)
         if not any(c.isalnum() for c in text):
             continue
@@ -99,6 +104,19 @@ def parse_tsv(tsv: str, width: int, height: int, min_confidence: float) -> list[
         )
     out.sort(key=lambda line: (line.y, line.x))
     return out
+
+
+def _split_columns(words: list[_Word]) -> list[list[_Word]]:
+    """Split one Tesseract line where a word gap is wider than COLUMN_GAP text heights."""
+    words = sorted(words, key=lambda w: w[0])
+    heights = sorted(w[3] for w in words)
+    limit = COLUMN_GAP * heights[len(heights) // 2]
+    parts = [[words[0]]]
+    for prev, word in zip(words, words[1:], strict=False):
+        if word[0] - (prev[0] + prev[2]) > limit:
+            parts.append([])
+        parts[-1].append(word)
+    return parts
 
 
 def read_text(image: Path, settings: Settings) -> list[OcrLine]:

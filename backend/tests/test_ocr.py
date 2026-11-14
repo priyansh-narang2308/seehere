@@ -62,6 +62,38 @@ def test_tesseract_failures_are_reported(tmp_path: Path) -> None:
         read_text(tmp_path / "s.png", Settings(ocr_language="no-such-language"))
 
 
+_TSV_HEADER = "\t".join(
+    [
+        "level",
+        "page_num",
+        "block_num",
+        "par_num",
+        "line_num",
+        "word_num",
+        "left",
+        "top",
+        "width",
+        "height",
+        "conf",
+        "text",
+    ]
+)
+
+
+def test_parse_tsv_splits_labels_that_only_share_a_row() -> None:
+    # Bar labels under a chart: one Tesseract line, but far apart. A normal word space is not split.
+    rows = [
+        "5\t1\t1\t1\t1\t1\t100\t400\t90\t30\t96\tLight",
+        "5\t1\t1\t1\t1\t2\t420\t400\t140\t30\t95\tElectron",
+        "5\t1\t1\t1\t1\t3\t570\t400\t150\t30\t95\ttransport",
+        "5\t1\t1\t1\t1\t4\t860\t400\t100\t30\t94\tCalvin",
+        "5\t1\t1\t1\t1\t5\t970\t400\t80\t30\t94\tcycle",
+    ]
+    lines = parse_tsv("\n".join([_TSV_HEADER, *rows]), 1200, 600, min_confidence=0.3)
+    assert [line.text for line in lines] == ["Light", "Electron transport", "Calvin cycle"]
+    assert lines[1].x == round(420 / 1200, 5) and lines[1].w == round((720 - 420) / 1200, 5)
+
+
 def test_parse_tsv_groups_words_into_lines() -> None:
     header = "\t".join(
         [
