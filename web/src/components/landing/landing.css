@@ -234,6 +234,8 @@
 .lp .tape ol {
   margin: 0;
   padding: 0;
+  display: grid;
+  gap: 8px;
 }
 .lp .tape time {
   color: var(--ink-2);
@@ -244,7 +246,9 @@
 .lp .tape .desc {
   background: #eaf0ff;
   color: var(--ink);
-  box-shadow: inset 3px 0 0 var(--blue);
+  border-left: 3px solid var(--blue);
+  border-radius: 4px 12px 12px 4px;
+  padding-left: 15px;
 }
 .lp .tape .desc b {
   font-family: var(--font-inter), sans-serif;
