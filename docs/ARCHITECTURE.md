@@ -122,6 +122,9 @@ Job kind `media.prepare` (`seehere/media/normalize.py`): re-inspect the source �
 - `seehere.text.numbers` normalizes numbers from OCR and speech for later comparison; stored evidence is never rewritten.
 - Job order per project: `media.prepare` → (`speech.transcribe`, `scenes.detect` → `ocr.extract`).
 
+## Slide decks (Task 11)
+- `POST/GET /api/projects/{id}/deck`. Job `deck.ingest` reads pages (pypdf, or in-memory PPTX with zip-bomb, path and XML guards) into `slide` rows, aligned to keyframes by text similarity with OCR. OCR re-queues it.
+
 ## Planned pipeline (design)
 1. **Ingest:** validate with ffprobe (never trust extensions), normalize, extract 16 kHz mono WAV.
 2. **STT:** faster-whisper words with start/end/confidence, then sentences.

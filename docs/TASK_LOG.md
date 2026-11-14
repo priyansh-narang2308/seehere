@@ -408,3 +408,27 @@
 - English only (`eng`); other languages need their Tesseract data and `OCR_LANGUAGE`.
 - No table or chart structure: each line is plain text. Chart values come from visual analysis (Task 12).
 
+## Task 11: Slide deck ingestion (2026-11-14) ✅
+
+### Implemented
+- **`POST /api/projects/{id}/deck`** (needs `X-SeeHere-Request: 1`; 50 MB cap; identified by content). Replacing a deck removes the old file. **`GET .../deck`** returns pages with their matched keyframe time and score.
+- **Shared upload streaming** (`api/uploads.py`), used by both the lecture and deck uploads.
+- **`slides/deck.py`**
+  - **PDF via pypdf (BSD)**, not PyMuPDF as the roadmap said: PyMuPDF is AGPL, which would oblige publishing the server's source to its users. Encrypted PDFs refused; 300 pages max.
+  - **PPTX read in memory with zipfile** (no python-pptx). Guards checked before any part is read: ≤ 3000 parts, ≤ 20 MB per part, ≤ 300 MB total, compression ratio ≤ 100, no `..`, absolute or drive paths. XML parsed with defusedxml. Slides ordered by number.
+  - **Alignment**: Dice similarity of distinctive tokens (3+ letter words and numbers) between page text and keyframe OCR text; below 0.4 the page stays unmatched.
+- **Job `deck.ingest`**: queued on upload, and re-queued by OCR whenever keyframe text changes, so alignment always uses current keyframes.
+- **Web:** Add / Replace deck control, the server's refusal reason, and pages with "at 0:05" or "Not matched"; stage 06 marked built.
+
+### Tests
+| Check | Result |
+|---|---|
+| `test_deck.py` (13) | Real PDF (hand-built with a text layer) and PPTX read exactly; numeric slide order; non-decks, encrypted and corrupt PDFs refused; **zip bomb, path traversal, too many parts and XML entity expansion refused**; alignment and OCR-typo tolerance. End to end: a 3-page PPTX on a 2-slide video gives **page 1 → 0:00, page 2 → 0:05, appendix unmatched**; replace deletes the old file; 403 / 415 / 404 / 413 with no files left behind |
+| Backend / Web | **201 passed, 1 skipped** / **111 passed** |
+| Live | PPTX added to the OCR demo project → page 1 at 0:00 and page 2 at 0:05 (score 1.0), page 3 not matched; shown on the page |
+
+### Known limitations
+- Only slide text is read (no speaker notes, images, or chart data in PPTX).
+- PDF text comes from the text layer; scanned PDFs have none, so their pages stay unmatched.
+- One deck per project.
+

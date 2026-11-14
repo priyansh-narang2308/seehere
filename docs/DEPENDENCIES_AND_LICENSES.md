@@ -13,6 +13,8 @@ Our own code is in `backend/src/seehere` and `web/src`. Everything below is a th
 | Alembic | migrations | MIT |
 | faster-whisper (+ CTranslate2, tokenizers, huggingface_hub, onnxruntime, NumPy) | local speech-to-text | MIT / MIT / Apache-2.0 / Apache-2.0 / MIT / BSD-3-Clause |
 | Pillow | frame thumbnails | MIT-CMU (HPND) |
+| pypdf | PDF slide text | BSD-3-Clause |
+| defusedxml | safe XML parsing (PPTX) | PSF-2.0 |
 | Whisper `small.en` weights (Systran/faster-whisper-small.en) | STT model, downloaded on first use | MIT |
 | httpx | HTTP client | BSD-3-Clause |
 | pytest, ruff, mypy | dev tooling | MIT |
