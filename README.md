@@ -15,11 +15,12 @@
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![OR-Tools CP-SAT](https://img.shields.io/badge/OR--Tools-CP--SAT-4285F4)
 ![Vultr](https://img.shields.io/badge/Deploy-Vultr-007BFC?logo=vultr&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Tests](https://img.shields.io/badge/tests-648%20backend%20%C2%B7%20128%20web-2E8B57)
 
 **HackGlobal 2026 · Track 02: Multimodal & Accessibility**
 
-[Live demo](#20-deployment-and-public-demo) · [How it works](#9-multimodal-pipeline) · [Evidence ledger](#10-the-visual-evidence-ledger) · [Run it locally](#14-local-installation) · [Measured results](#19-benchmarks-and-measured-results)
+**[▶ Live demo](https://65-20-87-43.sslip.io)** · [How it works](#9-multimodal-pipeline) · [Evidence ledger](#10-the-visual-evidence-ledger) · [Run it locally](#14-local-installation) · [Measured results](#19-benchmarks-and-measured-results)
 
 </div>
 
@@ -370,7 +371,7 @@ The deployment is a single Cloud Compute instance; see [docs/DEPLOYMENT.md](docs
 
 ## 25. License and acknowledgements
 
-**License:** not yet chosen; until a `LICENSE` file is added, all rights are reserved. Piper (GPL-3.0) is invoked as a separate program and is not linked into SeeHere. Third-party licenses are listed in [docs/DEPENDENCIES_AND_LICENSES.md](docs/DEPENDENCIES_AND_LICENSES.md).
+**License:** [MIT](LICENSE). Piper (GPL-3.0) is invoked as a separate program and is not linked into SeeHere. Third-party licenses are listed in [docs/DEPENDENCIES_AND_LICENSES.md](docs/DEPENDENCIES_AND_LICENSES.md).
 
 **Built with:**
 
