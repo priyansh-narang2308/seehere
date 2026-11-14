@@ -9,6 +9,7 @@ import {
   dueCue,
   heardBefore,
   mustHold,
+  pauseAt,
   transcriptEntries,
   type PlayCue,
 } from "@/lib/playback";
@@ -48,6 +49,7 @@ export function DescribedPlayer({
   const current = useRef<PlayCue | null>(null);
   const holding = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userVolume = useRef(1);
 
   /** End the current description (finished, stopped or skipped). */
@@ -55,7 +57,8 @@ export function DescribedPlayer({
     const v = video.current;
     audio.current?.pause();
     if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    timer.current = holdTimer.current = null;
     if (v && current.current) v.volume = userVolume.current;
     current.current = null;
     setSpeaking(null);
@@ -65,10 +68,23 @@ export function DescribedPlayer({
     }
   }, []);
 
+  /** Extended mode: hold the frame while the description finishes. */
+  const hold = useCallback((cue: PlayCue) => {
+    const v = video.current;
+    if (!v || current.current !== cue || holding.current || v.paused) return;
+    holding.current = true;
+    v.pause();
+  }, []);
+
   const start = useCallback(
-    (cue: PlayCue) => {
+    (cue: PlayCue, extended: boolean) => {
       const v = video.current;
       if (!v) return;
+      if (extended && cue.pause > 0) {
+        // A timer is exact; the playhead check above is the fallback if it fires late.
+        const ms = ((pauseAt(cue) - v.currentTime) / (v.playbackRate || 1)) * 1000;
+        holdTimer.current = setTimeout(() => hold(cue), Math.max(0, ms));
+      }
       current.current = cue;
       heard.current.add(cue.id);
       setSpeaking(cue);
@@ -80,33 +96,37 @@ export function DescribedPlayer({
         timer.current = setTimeout(() => stop(true), cue.length * 1000);
       }
     },
-    [output, stop],
+    [hold, output, stop],
   );
 
-  // Check the playhead every frame while the video plays (timeupdate is too coarse).
+  // Check the playhead every frame while visible, and on every `timeupdate`: browsers pause
+  // animation frames in background tabs, where a listener may well be.
   useEffect(() => {
+    const v = video.current;
     let raf = 0;
-    const tick = () => {
-      const v = video.current;
-      if (v) {
-        const t = v.currentTime;
-        setNow(t);
-        if (enabled && !v.paused) {
-          const cue = current.current;
-          if (cue && mustHold(cue, t, mode === "extended") && !holding.current) {
-            holding.current = true;
-            v.pause();
-          } else if (!cue) {
-            const next = dueCue(list, t, heard.current);
-            if (next) start(next);
-          }
-        }
+    const check = () => {
+      if (!v) return;
+      const t = v.currentTime;
+      setNow(t);
+      if (!enabled || v.paused) return;
+      const cue = current.current;
+      if (cue && mustHold(cue, t, mode === "extended") && !holding.current) hold(cue);
+      else if (!cue) {
+        const next = dueCue(list, t, heard.current);
+        if (next) start(next, mode === "extended");
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [enabled, list, mode, start]);
+    const frame = () => {
+      check();
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    v?.addEventListener("timeupdate", check);
+    return () => {
+      cancelAnimationFrame(raf);
+      v?.removeEventListener("timeupdate", check);
+    };
+  }, [enabled, hold, list, mode, start]);
 
   /** Changing a setting stops what is playing; what came before the playhead counts as heard. */
   const change = <T,>(set: (v: T) => void, nextList: () => PlayCue[]) => (v: T) => {

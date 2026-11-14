@@ -56,6 +56,14 @@ describe("DescribedPlayer", () => {
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });
 
+  it("still fires from timeupdate in a background tab, where animation frames stop", () => {
+    const { video, container } = setup();
+    video.currentTime = 2.1;
+    Object.defineProperty(video, "paused", { configurable: true, value: false });
+    fireEvent.timeUpdate(video);
+    expect(container.querySelector("audio")).toHaveAttribute("src", "/api/audio/a");
+  });
+
   it("extended mode holds the video until the description finishes", async () => {
     const { video, container } = setup();
     await userEvent.click(screen.getByRole("radio", { name: "Extended (pauses the video)" }));
