@@ -85,12 +85,18 @@ def test_transcript_round_trip(
     assert "bar chart on the left" in " ".join(s["text"] for s in body["segments"]).lower()
     assert [w["start_s"] for w in words] == sorted(w["start_s"] for w in words)
     assert set(words[0]) == {"text", "start_s", "end_s", "confidence"}
-    assert [j["label"] for j in client.get(f"/api/projects/{pid}/jobs").json()["jobs"]] == [
-        "Media preparation",
-        "Speech-to-text",
-        "Scene and slide changes",
-        "On-screen text",
-    ]
+    labels = [j["label"] for j in client.get(f"/api/projects/{pid}/jobs").json()["jobs"]]
+    assert sorted(labels) == sorted(
+        [
+            "Media preparation",
+            "Speech-to-text",
+            "Scene and slide changes",
+            "On-screen text",
+            "Visual analysis",
+            "Seen versus said",
+        ]
+    )
+    assert labels[0] == "Media preparation" and labels[-1] == "Seen versus said"
 
 
 def test_unknown_project_is_404(client: TestClient) -> None:

@@ -103,7 +103,9 @@ def test_upload_to_timed_transcript(
     sessions: Sessions, settings: Settings, video: Path, clip: SpeechClip
 ) -> None:
     pid = _project(sessions, settings, video)
-    assert _run_all(sessions, settings) == 4  # media, speech-to-text, scenes, on-screen text
+    # media, speech-to-text, scenes, on-screen text, visual units, and seen-versus-said (queued
+    # by both speech-to-text and visual analysis, so it may run twice)
+    assert _run_all(sessions, settings) in (6, 7)
 
     jobs = _jobs(sessions, pid)
     speech = jobs[transcribe.JOB_KIND]
@@ -160,7 +162,7 @@ def test_running_again_replaces_the_transcript(
         s.execute(Job.__table__.update().where(Job.id == speech.id).values(status="failed"))
         s.commit()
         queue.retry(s, speech.id)
-    assert _run_all(sessions, settings) == 1
+    assert _run_all(sessions, settings) == 2  # speech-to-text, then re-scoring
     assert [(w.text, w.start_s) for w in _words(sessions, pid)] == first
     with sessions() as s:
         assert s.scalar(select(func.count()).select_from(TranscriptSegment)) > 0
@@ -185,12 +187,13 @@ def test_new_audio_requeues_the_same_speech_job(
 
     after = _jobs(sessions, pid)
     speech = after[transcribe.JOB_KIND]
-    assert len(after) == 4 and speech.id == jobs[transcribe.JOB_KIND].id
+    assert len(after) == 6 and speech.id == jobs[transcribe.JOB_KIND].id
     assert (speech.status, speech.attempts, speech.progress) == (JobStatus.QUEUED, 0, 0.0)
     assert _words(sessions, pid) == []  # the old transcript went with the old audio
     with sessions() as s:
         assert s.get(Project, pid).status == ProjectStatus.PROCESSING  # type: ignore[union-attr]
-    assert _run_all(sessions, settings) == 3  # speech, scenes and then OCR re-queued
+    # speech, scenes, OCR, visual units, and seen-versus-said re-queued (it may run twice)
+    assert _run_all(sessions, settings) in (5, 6)
     assert len(_words(sessions, pid)) > 10
 
 
